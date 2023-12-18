@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018-2019 Intel Corporation
+# Copyright (C) 2018-2019, 2022-2023 Solidigm. All Rights Reserved.
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -23,17 +23,27 @@ OBJDIR = .obj/
 LIBOBJDIR = .libobj/
 TARGET = sedcli
 LIB = libsed
+
+ifneq (clean,$(filter clean,$(MAKECMDGOALS)))
+$(info CFLAGS: $(CFLAGS))
+$(info LDFLAGS: $(LDFLAGS))
+ifdef CONFIG_KMIP
+$(info LDFLAGS_KMIP: $(LDFLAGS_KMIP))
+endif
+$(info TARGET: $(TARGET))
+$(info LIB: $(LIB))
+$(info INCLUDES: $(INCLUDES))
+$(info DEFINES: $(DEFINES))
+endif
+
 #
 # Files to be compiled
-
+#
 LIBOBJS = sed.o
 LIBOBJS += sed_util.o
 LIBOBJS += nvme_access.o
 LIBOBJS += nvme_pt_ioctl.o
 LIBOBJS += opal_parser.o
-ifdef CONFIG_OPAL_DRIVER
-LIBOBJS += sed_ioctl.o
-endif
 
 OBJS = argp.o
 OBJS += sedcli_main.o
@@ -74,16 +84,13 @@ $(TARGET).a: $(patsubst %,$(OBJDIR)%,$(OBJS))
 	@echo "  AR " $@
 	@ar rcs $@ $^
 
-$(TARGET)-kmip.a: libkmip.a $(patsubst %,$(OBJDIR)%,$(KMIP_OBJS))
+$(TARGET)-kmip.a: $(patsubst %,$(OBJDIR)%,$(KMIP_OBJS))
 	@echo "  AR " $@
 	@ar rcs $@ $(patsubst %,$(OBJDIR)%,$(KMIP_OBJS))
 
 $(TARGET)-kmip: $(TARGET)-kmip.a $(LIB).a
 	@echo "  LD " $@
-	@$(CC) $(TARGET)-kmip.a $(LDFLAGS) $(LDFLAGS_KMIP) -Wl,-Bstatic -lsed -Wl,-Bdynamic -o $@
-
-libkmip.a:
-	@pushd . > /dev/null && cd libkmip && make $@ && popd > /dev/null
+	@$(CC) $(TARGET)-kmip.a $(LDFLAGS) $(LDFLAGS_KMIP) -Wl,-Bstatic -lsed -lkmip -Wl,-Bdynamic -o $@
 
 #
 # Static library
@@ -116,49 +123,52 @@ $(LIBOBJDIR)%.o: lib/%.c
 
 clean:
 	@echo "  CLEAN "
-	@rm -f *.a $(TARGET)-kmip $(TARGET)-static $(TARGET)-dynamic $(TARGET) *.so*
+	@rm -f $(TARGET).a $(LIB).a $(TARGET)-kmip $(TARGET)-kmip.a $(TARGET)-static $(TARGET)-dynamic $(TARGET) $(LIB).so*
 	@rm -fr $(OBJDIR) $(LIBOBJDIR)
-	@rm -f $(shell find -name \*.d) $(shell find -name \*.o)
+	@rm -f properties
 
 distclean: clean
 	@rm -f config.log config.mk config.h
 
 install-$(TARGET):
 	@echo " Installing $(TARGET)"
-	install -m 755 $(TARGET)-dynamic /usr/sbin/$(TARGET)
-	install -m 755 $(LIB).so.1.0.1 $(LIB_DIR)
-	ln -sf $(LIB_DIR)/$(LIB).so.1.0.1 $(LIB_DIR)/$(LIB).so.1
-	install -m 644 ../doc/$(TARGET).8 /usr/share/man/man8/$(TARGET).8
+	install -m 755 $(TARGET)-dynamic $(DESTDIR)/usr/sbin/$(TARGET)
+	install -m 755 $(LIB).so.1.0.1 $(DESTDIR)$(LIB_DIR)
+	ln -sf $(LIB_DIR)/$(LIB).so.1.0.1 $(DESTDIR)$(LIB_DIR)/$(LIB).so.1
+#	install -m 644 ../doc/$(TARGET).8 $(DESTDIR)/usr/share/man/man8/$(TARGET).8
 
 install-$(TARGET)-kmip: install-$(TARGET)
 	@echo " Installing $(TARGET)-kmip"
-	install -m 755 $(TARGET)-kmip /usr/sbin/$(TARGET)-kmip
-	install -m 644 ../etc/udev/rules.d/63-sedcli.rules /etc/udev/rules.d/
-	install -m 755 -d /etc/sedcli /etc/sedcli/certs
-	install -m 644 ../etc/sedcli/sedcli.conf /etc/sedcli/
-	install -m 644 ../doc/$(TARGET)-kmip.8 /usr/share/man/man8/$(TARGET)-kmip.8
-	touch /etc/sedcli/sedcli_kmip && chmod 644 /etc/sedcli/sedcli_kmip
+	install -m 755 $(TARGET)-kmip $(DESTDIR)/usr/sbin/$(TARGET)-kmip
+	install -m 644 ../etc/udev/rules.d/63-sedcli.rules $(DESTDIR)/etc/udev/rules.d/
+	install -m 755 -d /etc/sedcli $(DESTDIR)/etc/sedcli/certs
+	install -m 644 ../etc/sedcli/sedcli.conf $(DESTDIR)/etc/sedcli/
+	touch $(DESTDIR)/etc/sedcli/sedcli_kmip && chmod 644 $(DESTDIR)/etc/sedcli/sedcli_kmip
+#	install -m 644 ../doc/$(TARGET)-kmip.8 $(DESTDIR)/usr/share/man/man8/$(TARGET)-kmip.8
 
 install-cert:
-	install -m 644 ../certs/ca/ca_cert.pem /etc/sedcli/certs/
-	install -m 644 ../certs/client/client_cert.pem /etc/sedcli/certs/
-	install -m 644 ../certs/client/client_key.pem /etc/sedcli/certs/
+	install -m 644 ../certs/ca/ca_cert.pem $(DESTDIR)/etc/sedcli/certs/
+	install -m 644 ../certs/client/client_cert.pem $(DESTDIR)/etc/sedcli/certs/
+	install -m 644 ../certs/client/client_key.pem $(DESTDIR)/etc/sedcli/certs/
 
 install: $(INSTALL_TARGETS)
 
 uninstall:
-	@echo "  Removing $(TARGET)"
-	-rm /usr/sbin/$(TARGET)
-	-rm $(LIB_DIR)/$(LIB).so*
-	-rm /usr/share/man/man8/$(TARGET).8
-	-rm /usr/share/man/man8/$(TARGET)-kmip.8
-	-rm /usr/sbin/$(TARGET)-kmip
-	-rm /etc/udev/rules.d/63-sedcli.rules
-	-rm /etc/sedcli/sedcli.conf
+	@echo " Removing $(TARGET)"
+	-rm $(DESTDIR)/usr/sbin/$(TARGET)
+	-rm $(DESTDIR)$(LIB_DIR)/$(LIB).so*
+	-rm $(DESTDIR)/usr/sbin/$(TARGET)-kmip
+	-rm $(DESTDIR)/etc/udev/rules.d/63-sedcli.rules
+	-rm $(DESTDIR)/etc/sedcli/sedcli.conf
+	-rm $(DESTDIR)/etc/sedcli/sedcli_kmip
+#	-rm $(DESTDIR)/usr/share/man/man8/$(TARGET).8
+#	-rm $(DESTDIR)/usr/share/man/man8/$(TARGET)-kmip.8
 
 uninstall-cert:
-	-rm /etc/sedcli/certs/ca_cert.pem
-	-rm /etc/sedcli/certs/client_cert.pem
-	-rm /etc/sedcli/certs/client_key.pem
+	-rm $(DESTDIR)/etc/sedcli/certs/ca_cert.pem
+	-rm $(DESTDIR)/etc/sedcli/certs/client_cert.pem
+	-rm $(DESTDIR)/etc/sedcli/certs/client_key.pem
+	-rm -r $(DESTDIR)/etc/sedcli/certs
+	-rm -r $(DESTDIR)/etc/sedcli
 
 .PHONY: clean all distclean install uninstall

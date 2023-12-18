@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright (C) 2018-2019 Intel Corporation
+# Copyright (C) 2018-2019, 2022-2023 Solidigm. All Rights Reserved.
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -22,87 +22,109 @@ touch ${CONFIG_H}
 touch ${CONFIG_MK}
 
 function app_config_mk() {
-	echo "${1}" >> ${CONFIG_MK}
+    echo "${1}" >> ${CONFIG_MK}
 }
 
 function app_config_h() {
-	echo "$1" >> ${CONFIG_H}
+    echo "$1" >> ${CONFIG_H}
 }
 
 function print_status() {
-	printf "%-30s%s\n" "$1" "$2"
+    printf "%-30s%s\n" "$1" "$2"
 }
 
 function test_compile() {
-	echo "Compiling test case $1" >> config.log
+    echo "Compiling test case $1" >> config.log
 
-	if [ "$4" != "" ]; then
-		src=$4
-	else
-		src=$TMP_SRC
-	fi
+    if [ "$4" != "" ]; then
+        src=$4
+    else
+        src=$TMP_SRC
+    fi
 
-	$cc $2 $3 -o $TMP_BIN $src >> config.log 2>&1 || return $?
+    $cc $2 $3 -o $TMP_BIN $src >> config.log 2>&1 || return $?
 }
 
 function generate_version() {
-	which git > /dev/null 2>&1
-	if [ $? -eq 0 ] && [ -e ../.git ]; then
-		SEDCLI_VERSION="`git describe HEAD 2>/dev/null`"
-	else
-		SEDCLI_VERSION="v0.1"
-	fi
-	echo "#define SEDCLI_VERSION (\"${SEDCLI_VERSION}\")" >> ${CONFIG_H}
+    SEDCLI_KMIP_VERSION="1.1"
+    echo "#define SEDCLI_KMIP_VERSION (\"${SEDCLI_KMIP_VERSION}\")" >> ${CONFIG_H}
+
+    SEDCLI_VERSION="1.1"
+    echo "#define SEDCLI_VERSION (\"${SEDCLI_VERSION}\")" >> ${CONFIG_H}
 }
 
 function common_def() {
-	app_config_h "#define _GNU_SOURCE"
-	app_config_h "#define __CHECK_ENDIAN__"
+    app_config_h "#define _GNU_SOURCE"
+    app_config_h "#define __CHECK_ENDIAN__"
 }
 
 function common_mk() {
-	app_config_mk "INCLUDES=./include ./lib/include"
-	app_config_mk "CFLAGS+=-include ${CONFIG_H}"
-	app_config_mk "CFLAGS+=-O2 -g -Wall -Werror -Wno-unused-function -Wno-address-of-packed-member -fstack-protector-all -std=gnu99"
-	app_config_mk "LDFLAGS+=-L."
-	if [ -f /etc/lsb-release ] && [ -n "`cat /etc/lsb-release | grep -i ubuntu`" ]; then
-		app_config_mk "LIB_DIR=/lib/x86_64-linux-gnu"
-	else
-		app_config_mk "LIB_DIR=/usr/lib64"
-	fi
+    app_config_mk "INCLUDES=./lib/include"
+    app_config_mk "CFLAGS+=-include ${CONFIG_H}"
+    # Fixes some errors in newer GCC versions
+    app_config_mk "CFLAGS+=-fcommon"
+
+    app_config_mk "CFLAGS+=-g -std=c17"
+    if [ "${sedcli_logging}" == "yes" ]; then
+        # asan, ubsan
+        app_config_mk "CFLAGS+=-fstack-protector-all"
+    fi
+
+    app_config_mk "LDFLAGS+=-L."
+    # Fixes some errors in newer GCC versions
+    app_config_mk "LDFLAGS+=-fcommon"
+    if [ -f /etc/lsb-release ] && [ -n "`cat /etc/lsb-release | grep -i ubuntu`" ]; then
+        app_config_mk "LIB_DIR=/lib/x86_64-linux-gnu"
+    else
+        app_config_mk "LIB_DIR=/usr/lib64"
+    fi
+
+    if [ "${sedcli_logging}" == "yes" ]; then
+        # asan, ubsan
+        app_config_mk "LDFLAGS+=-fsanitize=address -fsanitize=undefined"
+        app_config_mk "CFLAGS+=-fsanitize=address -fsanitize=undefined"
+
+        # enable all warnings
+        app_config_mk "CFLAGS+=-Wall -Werror -Wextra"
+
+        # debug info
+        app_config_mk "CFLAGS+=-O0"
+    else
+        app_config_mk "CFLAGS+=-O2"
+    fi
 }
 
 function print_help() {
-	echo "Configures sedcli build procedure"
-	echo "Options:"
-	echo "    --enable-kmip           Doesn't take any effect yet"
-	echo "    --enable-logging        Turns on sedcli debug logging to stdout"
+    echo "Configures sedcli/sedcli-kmip build procedure."
+    echo "Options:"
+    echo "    --enable-logging    Turns on debug logging to stdout."
+    echo "    --offline           Do not update kmip submodule."
 }
 
 function print_summary() {
-	echo ""
-	echo "Configuration written to: ${CONFIG_MK} ${CONFIG_H}"
-	echo "See more details in ${CONFIG_LOG}"
+    echo ""
+    echo "Configuration written to: ${CONFIG_MK} ${CONFIG_H}"
+    echo "See more details in ${CONFIG_LOG}"
 }
 
 # Default settings
-kmip_enabled="no"
 sedcli_logging="no"
+offline="no"
 
 # Process user specified options
 for option do
-	case "$option" in
-	--enable-kmip) kmip_enabled="yes"
-	;;
-	--enable-logging) sedcli_logging="yes"
-	;;
-	--help)
-	print_help
-	exit 0
-	;;
-	*)
-	echo "Wrong option: ${option}"
-	esac
+    case "$option" in
+    --enable-logging) sedcli_logging="yes"
+    ;;
+    --offline) offline="yes"
+    ;;
+    --help)
+    print_help
+    exit 0
+    ;;
+    *)
+    echo "Wrong option: ${option}"
+    esac
 done
 
 # Common and basic stuff
@@ -113,57 +135,57 @@ common_mk
 
 # Handle library logging
 if [ "${sedcli_logging}" == "yes" ]; then
-	app_config_h "#define SEDCLI_DEBUG_LOGGING"
+    app_config_h "#define SEDCLI_DEBUG_LOGGING"
 fi
 print_status "Debug logging" ${sedcli_logging}
-
 # ==========================================
-# Handle enabled kmip
-if [ "${kmip_enabled}" == "yes" ]; then
-	# Clone libkmip repo
-	pushd . > /dev/null
-	cd ../
-	git submodule update --init
-	ret_code=$?
-	popd > /dev/null
+# Handle kmip
+ret_code=$?
+print_status "Offline" ${offline}
+if [ "${offline}" == "no" ]; then
+    print_status "  update repository start"
+    # Clone libkmip repo
+    pushd . > /dev/null
+    cd ../
+    git submodule deinit --quiet --all --force
+    git submodule update --quiet --init
+    git submodule update --quiet --remote
+    print_status "  updating repository done"
+    print_status "  libkmip local install start"
+    cd src/libkmip
+    make all > /dev/null
+    make PREFIX=local install > /dev/null
+    print_status "  libkmip local install done"
+    cd ..
+    cp ./libkmip/local/lib/libkmip.a* ./
+    ret_code=$?
+    popd > /dev/null
+fi
+cat > $TMP_SRC <<EOF
 
-	cat > $TMP_SRC <<EOF
 #include <stdio.h>
 #include <openssl/opensslv.h>
 
 int main(int argc, char **argv)
 {
-	printf("%s\n", OPENSSL_VERSION_TEXT);
+    printf("%s\n", OPENSSL_VERSION_TEXT);
 
-	return 0;
+    return 0;
 }
 EOF
 
-	if [ "${ret_code}" -eq "0" ] && test_compile "openssl" "" "-lcrypto -lssl"; then
-		openssl_ver="`${TMP_BIN}`"
-		print_status "KMIP support" "yes (detected ${openssl_ver})"
-		app_config_mk "CONFIG_KMIP=y"
-		app_config_mk "INCLUDES+=libkmip"
-		app_config_mk "LDFLAGS_KMIP+=-Llibkmip -lkmip -lcrypto -lssl"
-	else
-		print_status "KMIP support" "no"
-	fi
-fi
-# ==========================================
-
-# ==========================================
-# Handle Opal driver discovery
-
-if test_compile "sed interface" "-I./lib/include -c" "" "./lib/sed_ioctl.c"; then
-	print_status "SED interface(s)" "NVMe-PT, opal-driver"
-	app_config_mk "CONFIG_OPAL_DRIVER=y"
-	app_config_h "#define CONFIG_OPAL_DRIVER"
-	app_config_h "#define CONFIG_OPAL_DRIVER_PSID_REVERT"
+if [ "${ret_code}" -eq "0" ] && \
+    test_compile "openssl" "" "-lcrypto -lssl"; then
+    openssl_ver="`${TMP_BIN}`"
+    print_status "KMIP support" "yes (detected ${openssl_ver})"
+    app_config_mk "CONFIG_KMIP=y"
+    app_config_mk "INCLUDES+=./libkmip/local/include"
+    app_config_mk "LDFLAGS_KMIP+=-lkmip -lcrypto -lssl"
 else
-	print_status "SED interface(s)" "NVMe-PT (opal-driver not available)"
+    print_status "KMIP support" "no"
 fi
-# ==========================================
 
+# ==========================================
 
 print_summary
 

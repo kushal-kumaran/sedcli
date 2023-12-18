@@ -50,67 +50,23 @@ update Admin1 password for Locking SP.
 
 .SH OPTIONS
 
-.IP "\fB\-D -d <device> [-f {normal|udev}]\fR or \fB\-\-discovery --device <device> [--format {normal|udev}]\fR"
-Performs Level 0 and Level 1 Discovery and prints out the info in human-readable(default) or
-machine friendly format.
-
-.IP "\fB\-O -d <device>\fR or \fB\-\-ownership --device <device>\fR"
-Takes ownership of the device.
-
-.IP "\fB\-A -d <device>\fR or \fB\-\-activate-lsp --device <device>\fR"
-Activates Locking SP.
-
-.IP "\fB\-R -d <device> [-i] [-n]\fR or \fB\-\-revert --device <device> [--psid] [--non-destructive]\fR"
-Performs Destructive or Non-Destructive Revert TPer to Manufactured-Inactivate
-state using either SID or PSID authority.
-
-.IP "\fB\-S -d <device>\fR or \fB\-\-setup-global-range --device <device>\fR"
-Sets Read Lock Enabled (RLE) and Write Lock Enabled (WLE) bis for global locking
-range. This effectively enables locking of all user data. Locking will start
-after power cycle or when explicitly locked using \fb\-\-lock-unlock\fR command.
-
-.IP "\fB\-L -d <device> -t <accesstype>\fR or \fB\-\-lock-unlock --device <device> --accesstype {RO|RW|LK}\fR"
-.IP
-Changes the lock state for the device. Following access modes are available:
-.IP
-1. Read-Only(RO) - user can only read the data from the disk.
-.IP
-2. Read-Write(RW) - user can read/write data from/to the disk.
-.IP
-3. Locked(LK) - data is locked, user can NOT read/write data from/to the disk.
-
-.IP "\fB\-P -d <device>\fR or \fB\-\-set-password --device <device>\fR"
-Updates password for Admin1 authority in Locking SP.
-
-.IP "\fB\-M -d <device> [-e {TRUE|FALSE}] [-m {TRUE|FALSE}]\fR or \fB\-\-mbr-control --device <device> [--enable {TRUE|FALSE}] [--done {TRUE|FALSE}]\fR"
-.IP
-Enable/Disable MBR Shadow and/or Set/Unset MBR Done.
-MBR Done update to TRUE will only take effect when MBR Shadow is enabled.
-
-.IP "\fB\-W -d <device> -f <pba_file> [-o <offset>]\fR or \fB\-\-write-mbr --device <device> --file <pba_file> [--offset <offset>]\fR"
-Write data into MBR shadow region(MBR table).
-MBR shadow should be enabled for the PBA to take effect.
-
-.IP "\fB\-B -d <device> -r {1|0}\fR or \fB\-\-block_sid --device <device> --hwreset {1|0}\fR"
-Issue BlockSID authentication command with Clear Event flag via --hwreset option.
-
-.IP "\fB\-V\fR or \fB\-\-version\fR"
+.IP "\fB\-\-version\fR"
 Prints version of sedcli.
 
-.IP "\fB\-H\fR or \fB\-\-help\fR"
+.IP "\fB\-\-help\fR"
 Prints global help on available commands and usage
 
 .IP "To print command specific help use following syntax:"
-.IP "\fBsedcli <command> -H\fR or \fBsedcli <command> --help\fR"
+.IP "\fBsedcli <command> --help\fR"
 .IP "For example:"
-.IP "\fBsedcli -D -H\fR or \fBsedcli --discovery --help\fR"
+.IP "\fBsedcli --discovery --help\fR"
 
 .SH COPYRIGHT
-Copyright(c) 2018-2020 by the Intel Corporation.
+Copyright (C) 2018-2019, 2022-2023 Solidigm. All Rights Reserved.
 
 .SH AUTHOR
-This manual page was created by Andrzej Jakowski <andrzej.jakowski@intel.com>
+This manual page was created by Piotr Rudnicki <piotr.rudnicki@solidigm.com>
 
 .SH SEE ALSO
 .TP
-sedcli(8)
+sedcli-kmip(8)

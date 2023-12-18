@@ -1,8 +1,9 @@
 /*
- * Copyright (C) 2020 Intel Corporation
+ * Copyright (C) 2020, 2022-2023 Solidigm. All Rights Reserved.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
+
 #ifndef _CONFIG_FILE_H_
 #define _CONFIG_FILE_H_
 
@@ -19,18 +20,18 @@
 #define SEDCLI_BKP_DYN_CONFIG_FILE "../etc/sedcli/sedcli_kmip"
 
 struct sedcli_stat_conf {
-	char kmip_ip[MAX_IP_LEN];
-	char kmip_port[MAX_PORT_LEN];
+    char kmip_ip[MAX_IP_LEN];
+    char kmip_port[MAX_PORT_LEN];
 
-	char client_cert_path[MAX_PATH_LEN];
-	char client_key_path[MAX_PATH_LEN];
+    char client_cert_path[MAX_PATH_LEN];
+    char client_key_path[MAX_PATH_LEN];
 
-	char ca_cert_path[MAX_PATH_LEN];
+    char ca_cert_path[MAX_PATH_LEN];
 };
 
 struct sedcli_dyn_conf {
-	char pek_id[MAX_PEK_ID_LEN];
-	int pek_id_size;
+    char pek_id[MAX_PEK_ID_LEN];
+    int pek_id_size;
 };
 
 int read_stat_config(struct sedcli_stat_conf *conf);
