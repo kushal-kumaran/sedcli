@@ -1,14 +1,15 @@
 /*
- * Copyright (C) 2020 Intel Corporation
+ * Copyright (C) 2020, 2022-2023 Solidigm. All Rights Reserved.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
+
 #ifndef _SEDCLI_UTIL_H_
 #define _SEDCLI_UTIL_H_
 
-int get_lock_type(const char *lock_type);
+int get_access_type(const char *access_type_str, enum SED_ACCESS_TYPE *access_type);
 
-int get_password(char *pwd, uint8_t *len, uint8_t min, uint8_t max);
+int get_password(char *pwd, uint8_t *len, uint8_t max);
 
 void *alloc_locked_buffer(size_t size);
 

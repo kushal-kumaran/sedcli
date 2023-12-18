@@ -1,8 +1,9 @@
 /*
- * Copyright (C) 2020 Intel Corporation
+ * Copyright (C) 2020, 2022-2023 Solidigm. All Rights Reserved.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -28,27 +29,27 @@
 
 int get_random_bytes(uint8_t *buffer, size_t bytes_no)
 {
-	if (RAND_priv_bytes(buffer, bytes_no))
-		return 0;
-	else
-		return -EOPNOTSUPP;
+    if (RAND_priv_bytes(buffer, bytes_no))
+        return 0;
+    else
+        return -EOPNOTSUPP;
 }
 
 int derive_key(uint8_t *buffer, int buffer_len, uint8_t *salt, int salt_len,
-	       uint8_t *out, int out_len)
+           uint8_t *out, int out_len)
 {
-	int status;
-	int iterations = 10000;
+    int status;
+    int iterations = 10000;
 
-	status = PKCS5_PBKDF2_HMAC((char *) buffer, buffer_len, salt, salt_len,
-				   iterations, EVP_sha512(), out_len, out);
+    status = PKCS5_PBKDF2_HMAC((char *) buffer, buffer_len, salt, salt_len,
+                   iterations, EVP_sha512(), out_len, out);
 
-	if (status == 0) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    if (status == 0) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	return 0;
+    return 0;
 }
 
 /*
@@ -56,82 +57,80 @@ int derive_key(uint8_t *buffer, int buffer_len, uint8_t *salt, int salt_len,
  * Padding is disabled, so the encrypted DEK key (cipher) size should be 32B
  */
 int encrypt_dek(uint8_t *plain, int plain_size,
-		uint8_t *auth_data, int auth_data_len,
-		uint8_t *cipher, int cipher_size,
-		uint8_t *key, int key_size,
-		uint8_t *iv, int iv_size,
-		uint8_t *tag, int tag_size)
+        uint8_t *auth_data, int auth_data_len,
+        uint8_t *cipher, int cipher_size,
+        uint8_t *key, int key_size,
+        uint8_t *iv, int iv_size,
+        uint8_t *tag, int tag_size)
 {
-	int status, len, total_bytes = 0;
-	EVP_CIPHER_CTX *ctx;
+    int status, len, total_bytes = 0;
+    EVP_CIPHER_CTX *ctx;
 
-	/* Perform sanity checks for provided input */
+    /* Perform sanity checks for provided input */
+    if (plain_size % CRYPTO_BS != 0 || iv_size != CRYPTO_BS ||
+        cipher_size != plain_size || key_size != SED_KMIP_KEY_LEN ||
+        tag_size < TAG_SIZE)
+        return -EINVAL;
 
-	if (plain_size % CRYPTO_BS != 0 || iv_size != CRYPTO_BS ||
-	    cipher_size != plain_size || key_size != SED_MAX_KEY_LEN ||
-	    tag_size < TAG_SIZE)
-		return -EINVAL;
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	ctx = EVP_CIPHER_CTX_new();
+    status = EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	if (ctx == NULL) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    status = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    status = EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv);
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    if (auth_data_len > 0) {
+        /* Provide additional authenticated data for encryption */
+        status = EVP_EncryptUpdate(ctx, NULL, &len, auth_data,
+                       auth_data_len);
+        if (status != 1) {
+            ERR_print_errors_fp(stderr);
+            return -1;
+        }
+    }
 
-	status = EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv);
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    status = EVP_EncryptUpdate(ctx, cipher, &len, plain, plain_size);
+    total_bytes += len;
 
-	if (auth_data_len > 0) {
-		/* Provide additional authenticated data for encryption */
-		status = EVP_EncryptUpdate(ctx, NULL, &len, auth_data,
-					   auth_data_len);
-		if (status != 1) {
-			ERR_print_errors_fp(stderr);
-			return -1;
-		}
-	}
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_EncryptUpdate(ctx, cipher, &len, plain, plain_size);
-	total_bytes += len;
+    status = EVP_EncryptFinal_ex(ctx, &cipher[len], &len);
+    total_bytes += len;
 
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_EncryptFinal_ex(ctx, &cipher[len], &len);
-	total_bytes += len;
+    status = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag_size, tag);
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    EVP_CIPHER_CTX_free(ctx);
 
-	status = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag_size, tag);
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
-
-	EVP_CIPHER_CTX_free(ctx);
-
-	return total_bytes;
+    return total_bytes;
 }
 
 /*
@@ -140,79 +139,79 @@ int encrypt_dek(uint8_t *plain, int plain_size,
  * 32B.
  */
 int decrypt_dek(uint8_t *cipher, int cipher_size,
-		uint8_t *auth_data, int auth_data_len,
-		uint8_t *plain, int plain_size,
-		uint8_t *key, int key_size,
-		uint8_t *iv, int iv_size,
-		uint8_t *tag, int tag_size)
+        uint8_t *auth_data, int auth_data_len,
+        uint8_t *plain, int plain_size,
+        uint8_t *key, int key_size,
+        uint8_t *iv, int iv_size,
+        uint8_t *tag, int tag_size)
 {
-	int status, len, total_bytes = 0;
-	EVP_CIPHER_CTX *ctx;
+    int status, len, total_bytes = 0;
+    EVP_CIPHER_CTX *ctx;
 
-	/* Perform sanity checks for provided input */
-	if (plain_size % CRYPTO_BS != 0 || iv_size != CRYPTO_BS ||
-	    cipher_size != plain_size || key_size != SED_MAX_KEY_LEN ||
-	    tag_size < TAG_SIZE)
-		return -EINVAL;
+    /* Perform sanity checks for provided input */
+    if (plain_size % CRYPTO_BS != 0 || iv_size != CRYPTO_BS ||
+        cipher_size != plain_size || key_size != SED_KMIP_KEY_LEN ||
+        tag_size < TAG_SIZE)
+        return -EINVAL;
 
-	ctx = EVP_CIPHER_CTX_new();
+    ctx = EVP_CIPHER_CTX_new();
 
-	if (ctx == NULL) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    if (ctx == NULL) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    status = EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    status = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_size, NULL);
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv);
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    status = EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv);
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	if (auth_data_len > 0) {
-		/* Provide additional authenticated data for encryption */
-		status = EVP_DecryptUpdate(ctx, NULL, &len, auth_data,
-					   auth_data_len);
-		if (status !=  1) {
-			ERR_print_errors_fp(stderr);
-			return -1;
-		}
-	}
+    if (auth_data_len > 0) {
+        /* Provide additional authenticated data for encryption */
+        status = EVP_DecryptUpdate(ctx, NULL, &len, auth_data,
+                       auth_data_len);
+        if (status !=  1) {
+            ERR_print_errors_fp(stderr);
+            return -1;
+        }
+    }
 
-	status = EVP_DecryptUpdate(ctx, plain, &len, cipher, cipher_size);
-	total_bytes = len;
+    status = EVP_DecryptUpdate(ctx, plain, &len, cipher, cipher_size);
+    total_bytes = len;
 
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag_size, tag);
-	if (status != 1) {
-		ERR_print_errors_fp(stderr);
-		return -1;
-	}
+    status = EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag_size, tag);
+    if (status != 1) {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
 
-	status = EVP_DecryptFinal_ex(ctx, &plain[len], &len);
+    status = EVP_DecryptFinal_ex(ctx, &plain[len], &len);
 
-	EVP_CIPHER_CTX_free(ctx);
+    EVP_CIPHER_CTX_free(ctx);
 
-	if (status > 0) {
-		total_bytes += len;
-		return total_bytes;
-	}
+    if (status > 0) {
+        total_bytes += len;
+        return total_bytes;
+    }
 
-	return -1;
+    return -1;
 }
 
