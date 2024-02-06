@@ -29,6 +29,7 @@
 #define OPAL_FEAT_TPER       0x0001
 #define OPAL_FEAT_LOCKING    0x0002
 #define OPAL_FEAT_GEOMETRY   0x0003
+#define OPAL_FEAT_SIIS       0x0005
 #define OPAL_FEAT_DATASTORE  0x0202
 #define OPAL_FEAT_SUM        0x0201
 #define OPAL_FEAT_OPALV100   0x0200
@@ -274,7 +275,7 @@ static int opal_level0_discovery_pt(struct sed_device *device)
     struct opal_level0_feat_desc *desc;
     struct opal_l0_disc disc_data;
     struct opal_device *dev = device->priv;
-    struct sed_opal_level0_discovery *discv = &device->discv.sed_lvl0_discv;
+    struct sed_opal_level0_discovery *discovery = &device->discovery.sed_lvl0_discovery;
 
     int pos, end, feat_no;
     uint16_t feat_code;
@@ -294,10 +295,10 @@ static int opal_level0_discovery_pt(struct sed_device *device)
 
     /* level 0 header */
     header = (struct opal_level0_header *)buffer;
-    device->discv.sed_lvl0_discv_header.len = header->len;
-    device->discv.sed_lvl0_discv_header.rev = header->rev;
+    device->discovery.sed_lvl0_discovery_header.len = header->len;
+    device->discovery.sed_lvl0_discovery_header.rev = header->rev;
     for (uint8_t i = 0; i < 32; i++)
-        device->discv.sed_lvl0_discv_header.vendor_specific[i] = header->vendor_specific[i];
+        device->discovery.sed_lvl0_discovery_header.vendor_specific[i] = header->vendor_specific[i];
 
     memset(&disc_data, 0, sizeof(struct opal_l0_disc));
     disc_data.rev = be32toh(header->rev);
@@ -318,11 +319,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_TPER:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_tper, (struct tper_feat *)&desc->feat.tper.flags, sizeof(struct tper_feat));
-            discv->feat_avail_flag.feat_tper = 1;
-            discv->sed_tper.code = desc->code;
-            discv->sed_tper.rev = desc->rev;
-            discv->sed_tper.len = desc->len;
+            memcpy(&discovery->sed_tper, (struct tper_feat *)&desc->feat.tper.flags, sizeof(struct tper_feat));
+            discovery->feat_avail_flag.feat_tper = 1;
+            discovery->sed_tper.code = desc->code;
+            discovery->sed_tper.rev = desc->rev;
+            discovery->sed_tper.len = desc->len;
 
             feat_no++;
             break;
@@ -330,11 +331,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_LOCKING:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_locking, (struct locking_feat *)&desc->feat.locking.flags, sizeof(struct locking_feat));
-            discv->feat_avail_flag.feat_locking = 1;
-            discv->sed_locking.code = desc->code;
-            discv->sed_locking.rev = desc->rev;
-            discv->sed_locking.len = desc->len;
+            memcpy(&discovery->sed_locking, (struct locking_feat *)&desc->feat.locking.flags, sizeof(struct locking_feat));
+            discovery->feat_avail_flag.feat_locking = 1;
+            discovery->sed_locking.code = desc->code;
+            discovery->sed_locking.rev = desc->rev;
+            discovery->sed_locking.len = desc->len;
 
             feat_no++;
             break;
@@ -342,11 +343,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_GEOMETRY:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_geometry, (struct geometry_feat *)&desc->feat.geometry, sizeof(struct geometry_feat));
-            discv->feat_avail_flag.feat_geometry = 1;
-            discv->sed_geometry.code = desc->code;
-            discv->sed_geometry.rev = desc->rev;
-            discv->sed_geometry.len = desc->len;
+            memcpy(&discovery->sed_geometry, (struct geometry_feat *)&desc->feat.geometry, sizeof(struct geometry_feat));
+            discovery->feat_avail_flag.feat_geometry = 1;
+            discovery->sed_geometry.code = desc->code;
+            discovery->sed_geometry.rev = desc->rev;
+            discovery->sed_geometry.len = desc->len;
 
             feat_no++;
             break;
@@ -354,11 +355,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_DATASTORE:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_datastore, (struct datastore_feat *)&desc->feat.datastore.datastore, sizeof(struct datastore_feat));
-            discv->feat_avail_flag.feat_datastore = 1;
-            discv->sed_datastore.code = desc->code;
-            discv->sed_datastore.rev = desc->rev;
-            discv->sed_datastore.len = desc->len;
+            memcpy(&discovery->sed_datastore, (struct datastore_feat *)&desc->feat.datastore.datastore, sizeof(struct datastore_feat));
+            discovery->feat_avail_flag.feat_datastore = 1;
+            discovery->sed_datastore.code = desc->code;
+            discovery->sed_datastore.rev = desc->rev;
+            discovery->sed_datastore.len = desc->len;
 
             feat_no++;
             break;
@@ -366,11 +367,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_SUM:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_sum, (struct sum_feat *)&desc->feat.sum, sizeof(struct sum_feat));
-            discv->feat_avail_flag.feat_sum = 1;
-            discv->sed_sum.code = desc->code;
-            discv->sed_sum.rev = desc->rev;
-            discv->sed_sum.len = desc->len;
+            memcpy(&discovery->sed_sum, (struct sum_feat *)&desc->feat.sum, sizeof(struct sum_feat));
+            discovery->feat_avail_flag.feat_sum = 1;
+            discovery->sed_sum.code = desc->code;
+            discovery->sed_sum.rev = desc->rev;
+            discovery->sed_sum.len = desc->len;
 
             feat_no++;
             break;
@@ -378,11 +379,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_BLOCK_SID:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_block_sid, (struct block_sid_feat *)&desc->feat.block_sid, sizeof(struct block_sid_feat));
-            discv->feat_avail_flag.feat_block_sid = 1;
-            discv->sed_block_sid.code = desc->code;
-            discv->sed_block_sid.rev = desc->rev;
-            discv->sed_block_sid.len = desc->len;
+            memcpy(&discovery->sed_block_sid, (struct block_sid_feat *)&desc->feat.block_sid, sizeof(struct block_sid_feat));
+            discovery->feat_avail_flag.feat_block_sid = 1;
+            discovery->sed_block_sid.code = desc->code;
+            discovery->sed_block_sid.rev = desc->rev;
+            discovery->sed_block_sid.len = desc->len;
 
             feat_no++;
             break;
@@ -390,11 +391,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_OPALV100:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_opalv100, (struct opalv100_feat *)&desc->feat.opalv100, sizeof(struct opalv100_feat));
-            discv->feat_avail_flag.feat_opalv100 = 1;
-            discv->sed_opalv100.code = desc->code;
-            discv->sed_opalv100.rev = desc->rev;
-            discv->sed_opalv100.len = desc->len;
+            memcpy(&discovery->sed_opalv100, (struct opalv100_feat *)&desc->feat.opalv100, sizeof(struct opalv100_feat));
+            discovery->feat_avail_flag.feat_opalv100 = 1;
+            discovery->sed_opalv100.code = desc->code;
+            discovery->sed_opalv100.rev = desc->rev;
+            discovery->sed_opalv100.len = desc->len;
 
             feat_no++;
             break;
@@ -402,11 +403,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_OPALV200:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_opalv200, (struct opalv200_feat *)&desc->feat.opalv200, sizeof(struct opalv200_feat));
-            discv->feat_avail_flag.feat_opalv200 = 1;
-            discv->sed_opalv200.code = desc->code;
-            discv->sed_opalv200.rev.rev = desc->rev;
-            discv->sed_opalv200.len = desc->len;
+            memcpy(&discovery->sed_opalv200, (struct opalv200_feat *)&desc->feat.opalv200, sizeof(struct opalv200_feat));
+            discovery->feat_avail_flag.feat_opalv200 = 1;
+            discovery->sed_opalv200.code = desc->code;
+            discovery->sed_opalv200.rev.rev = desc->rev;
+            discovery->sed_opalv200.len = desc->len;
 
             curr_feat->feat.opalv200.base_comid = be16toh(desc->feat.opalv200.base_comid);
             disc_data.comid = curr_feat->feat.opalv200.base_comid;
@@ -418,11 +419,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
             // ruby is opalv200 feature struct
-            memcpy(&discv->sed_ruby, (struct opalv200_feat *)&desc->feat.ruby, sizeof(struct opalv200_feat));
-            discv->feat_avail_flag.feat_ruby = 1;
-            discv->sed_ruby.code = desc->code;
-            discv->sed_ruby.rev.rev = desc->rev;
-            discv->sed_ruby.len = desc->len;
+            memcpy(&discovery->sed_ruby, (struct opalv200_feat *)&desc->feat.ruby, sizeof(struct opalv200_feat));
+            discovery->feat_avail_flag.feat_ruby = 1;
+            discovery->sed_ruby.code = desc->code;
+            discovery->sed_ruby.rev.rev = desc->rev;
+            discovery->sed_ruby.len = desc->len;
 
             curr_feat->feat.ruby.base_comid = be16toh(desc->feat.ruby.base_comid);
             disc_data.comid = curr_feat->feat.ruby.base_comid;
@@ -433,11 +434,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_PYRITEV100:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_pyritev100, (struct pyrite_feat *)&desc->feat.pyritev100, sizeof(struct pyrite_feat));
-            discv->feat_avail_flag.feat_pyritev100 = 1;
-            discv->sed_pyritev100.code = desc->code;
-            discv->sed_pyritev100.rev = desc->rev;
-            discv->sed_pyritev100.len = desc->len;
+            memcpy(&discovery->sed_pyritev100, (struct pyrite_feat *)&desc->feat.pyritev100, sizeof(struct pyrite_feat));
+            discovery->feat_avail_flag.feat_pyritev100 = 1;
+            discovery->sed_pyritev100.code = desc->code;
+            discovery->sed_pyritev100.rev = desc->rev;
+            discovery->sed_pyritev100.len = desc->len;
 
             curr_feat->feat.pyritev100.base_comid = be16toh(desc->feat.pyritev100.base_comid);
             disc_data.comid = curr_feat->feat.pyritev100.base_comid;
@@ -448,11 +449,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_PYRITEV200:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_pyritev200, (struct pyrite_feat *)&desc->feat.pyritev200, sizeof(struct pyrite_feat));
-            discv->feat_avail_flag.feat_pyritev200 = 1;
-            discv->sed_pyritev200.code = desc->code;
-            discv->sed_pyritev200.rev = desc->rev;
-            discv->sed_pyritev200.len = desc->len;
+            memcpy(&discovery->sed_pyritev200, (struct pyrite_feat *)&desc->feat.pyritev200, sizeof(struct pyrite_feat));
+            discovery->feat_avail_flag.feat_pyritev200 = 1;
+            discovery->sed_pyritev200.code = desc->code;
+            discovery->sed_pyritev200.rev = desc->rev;
+            discovery->sed_pyritev200.len = desc->len;
 
             curr_feat->feat.pyritev200.base_comid = be16toh(desc->feat.pyritev200.base_comid);
             disc_data.comid = curr_feat->feat.pyritev200.base_comid;
@@ -463,8 +464,11 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_DATA_RM:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_data_rm, (struct data_rm_feat *)&desc->feat.data_rm, sizeof(struct data_rm_feat));
-            discv->feat_avail_flag.feat_data_rm = 1;
+            memcpy(&discovery->sed_data_rm, (struct data_rm_feat *)&desc->feat.data_rm, sizeof(struct data_rm_feat));
+            discovery->feat_avail_flag.feat_data_rm = 1;
+            discovery->sed_data_rm.code = desc->code;
+            discovery->sed_data_rm.rev = desc->rev;
+            discovery->sed_data_rm.len = desc->len;
 
             feat_no++;
             break;
@@ -472,16 +476,29 @@ static int opal_level0_discovery_pt(struct sed_device *device)
         case OPAL_FEAT_CNL:
             curr_feat = &disc_data.feats[feat_no];
             curr_feat->type = feat_code;
-            memcpy(&discv->sed_cnl, (struct cnl_feat *)&desc->feat.cnl, sizeof(struct cnl_feat));
-            discv->feat_avail_flag.feat_cnl = 1;
-            discv->sed_cnl.code = desc->code;
-            discv->sed_cnl.rev = desc->rev;
-            discv->sed_cnl.len = desc->len;
+            memcpy(&discovery->sed_cnl, (struct cnl_feat *)&desc->feat.cnl, sizeof(struct cnl_feat));
+            discovery->feat_avail_flag.feat_cnl = 1;
+            discovery->sed_cnl.code = desc->code;
+            discovery->sed_cnl.rev = desc->rev;
+            discovery->sed_cnl.len = desc->len;
+
+            feat_no++;
+            break;
+
+        case OPAL_FEAT_SIIS:
+            curr_feat = &disc_data.feats[feat_no];
+            curr_feat->type = feat_code;
+            memcpy(&discovery->sed_siis, (struct siis_feat *)&desc->feat.siis, sizeof(struct siis_feat));
+            discovery->feat_avail_flag.feat_siis = 1;
+            discovery->sed_siis.code = desc->code;
+            discovery->sed_siis.data_structure_version = desc->rev;
+            discovery->sed_siis.len = desc->len;
 
             feat_no++;
             break;
 
         default:
+            SEDCLI_DEBUG_PARAM("Unsupported feature code: %x\n", feat_code);
             break;
         }
     }
@@ -515,7 +532,7 @@ void opal_deinit_pt(struct sed_device *dev)
 
 static uint64_t tper_prop_to_val(struct sed_device *dev, const char *tper_prop_name, uint64_t *val)
 {
-    struct sed_tper_properties *tper = &dev->discv.sed_tper_props;
+    struct sed_tper_properties *tper = &dev->discovery.sed_tper_props;
 
     for (uint8_t j = 0; j < NUM_TPER_PROPS; j++) {
         if (strncmp(tper_prop_name, tper->property[j].key_name, strlen(tper_prop_name)) == 0) {
@@ -561,7 +578,7 @@ int opal_init_pt(struct sed_device *dev, const char *device_path, bool try)
 
     int ret = open_dev(device_path, try);
     if (ret < 0) {
-        SEDCLI_DEBUG_PARAM("Error in opening the device: %d", ret);
+        SEDCLI_DEBUG_PARAM("Error in opening the device: %d\n", ret);
         return -ENODEV;
     }
 
@@ -570,7 +587,7 @@ int opal_init_pt(struct sed_device *dev, const char *device_path, bool try)
     /* Initializing the parser list */
     ret = opal_parser_init();
     if (ret) {
-        SEDCLI_DEBUG_MSG("Error in initializing the parser list.\n");
+        SEDCLI_DEBUG_PARAM("Error in initializing the parser list: %d\n", ret);
         ret = -EINVAL;
         goto init_deinit;
     }
@@ -597,7 +614,7 @@ int opal_init_pt(struct sed_device *dev, const char *device_path, bool try)
 
     ret = opal_dev_discovery(dev);
     if (ret) {
-        SEDCLI_DEBUG_MSG("Error in discovery.\n");
+        SEDCLI_DEBUG_PARAM("Error in discovery: %d\n", ret);
         goto init_deinit;
     }
 
@@ -635,18 +652,17 @@ static int opal_dev_discovery(struct sed_device *dev)
         return ret;
     }
 
-    ret = opal_host_prop(dev, NULL, NULL);
-    SEDCLI_DEBUG_PARAM("Setting host props status: %d.\n", ret);
+    opal_host_prop(dev, NULL, NULL);
 
     return ret;
 }
 
-int opal_dev_discovery_pt(struct sed_device *dev, struct sed_opal_device_discovery *discv)
+int opal_dev_discovery_pt(struct sed_device *dev, struct sed_opal_device_discovery *discovery)
 {
-    if (dev == NULL || discv == NULL)
+    if (dev == NULL || discovery == NULL)
         return -EINVAL;
 
-    memcpy(discv, &dev->discv, sizeof(*discv));
+    memcpy(discovery, &dev->discovery, sizeof(*discovery));
 
     return 0;
 }
@@ -841,13 +857,14 @@ static uint8_t check_resp_status(struct opal_parsed_payload *payload)
     if (resp_token_match(token, OPAL_STARTTRANSACTON))
         return 0;
 
-    int num = payload->len;
+    uint32_t num = payload->len;
     if (num < 5)
         return DTAERROR_NO_METHOD_STATUS;
 
     uint8_t shift = 0;
-    if (resp_token_match(payload->tokens[num - 1], OPAL_EMPTYATOM))
-        shift = 1;
+    while (num - 1 - shift > 0 && resp_token_match(payload->tokens[num - 1 - shift], OPAL_EMPTYATOM))
+        shift++;
+    SEDCLI_DEBUG_PARAM("check response status shift: %d\n", shift);
 
     if (resp_token_match(token, OPAL_ENDTRANSACTON))
         return payload->tokens[num - 1 - shift]->vals.uint;
@@ -869,15 +886,17 @@ static int opal_snd_rcv_cmd_parse_chk(int fd, struct opal_device *dev, bool end_
     int ret = opal_send_recv(fd, TCG_SECP_01, dev->comid, dev->req_buf, dev->req_buf_size, dev->resp_buf,
         dev->resp_buf_size);
     if (ret) {
-        SEDCLI_DEBUG_PARAM("NVM error: %d\n", ret);
+        SEDCLI_DEBUG_PARAM("NVMe error: %d\n", ret);
         nvme_error = ret;
         return ret;
     }
 
     size_t subpacket_len = 0;
     ret = check_header_lengths(dev, &subpacket_len);
-    if (ret)
+    if (ret) {
+        SEDCLI_DEBUG_PARAM("Error in header lengths: %d\n", ret);
         return ret;
+    }
 
     if (end_session) {
         dev->session.tsn = 0;
@@ -887,11 +906,13 @@ static int opal_snd_rcv_cmd_parse_chk(int fd, struct opal_device *dev, bool end_
     uint8_t *data_buf = dev->resp_buf + sizeof(struct opal_header);
     ret = opal_parse_data_payload(data_buf, subpacket_len, &dev->payload);
     if (ret == -EINVAL) {
-        SEDCLI_DEBUG_MSG("Error in parsing the response\n");
+        SEDCLI_DEBUG_MSG("Error in parsing the response.\n");
         return ret;
     }
 
     ret = check_resp_status(&dev->payload);
+    if (ret > 0)
+        SEDCLI_DEBUG_PARAM("OPAL response: %d\n", ret);
 
     return ret;
 }
@@ -946,14 +967,14 @@ static void parse_tper_host_prop(struct sed_device *device)
 {
     struct opal_device *dev = device->priv;
     int payload_len = dev->payload.len;
-    struct sed_tper_properties *tper = &device->discv.sed_tper_props;
+    struct sed_tper_properties *tper = &device->discovery.sed_tper_props;
 
     /* TPer properties are returned as key-value pairs */
     for (uint8_t i = 0, j = 0; i < payload_len; i++) {
         if (resp_token_match(dev->payload.tokens[i], OPAL_STARTNAME)) {
             int jmp = get_payload_string(dev, i + 1);
             if (jmp == 0) {
-                tper = &device->discv.sed_host_props;
+                tper = &device->discovery.sed_host_props;
                 j = 0;
                 continue;
             }
@@ -1119,7 +1140,7 @@ static int opal_host_prop(struct sed_device *device, const char *props, uint32_t
             host_to_tper_cmd_all[4 + 4 * i].val.bytes = (uint8_t *)names[i];
             host_to_tper_cmd_all[4 + 4 * i].len = strlen(names[i]);
 
-            struct sed_tper_properties *tper = &device->discv.sed_tper_props;
+            struct sed_tper_properties *tper = &device->discovery.sed_tper_props;
             for (uint8_t j = 0; j < NUM_TPER_PROPS; j++) {
                 if (strncmp(names[i], tper->property[j].key_name, 255) == 0 || values[i] != 0) {
                     uint32_t val = values[i] != 0 ? values[i] : tper->property[j].value;
@@ -1141,7 +1162,7 @@ static int opal_host_prop(struct sed_device *device, const char *props, uint32_t
 
     ret = opal_snd_rcv_cmd_parse_chk(device->fd, dev, false);
     if (ret) {
-        SEDCLI_DEBUG_MSG("Host props - send receive error.\n");
+        SEDCLI_DEBUG_PARAM("Host props - send receive error %d\n", ret);
         goto put_tokens;
     }
 
@@ -1156,7 +1177,7 @@ put_tokens:
 
     opal_put_all_tokens(dev->payload.tokens, &dev->payload.len);
 
-    SEDCLI_DEBUG_MSG("Host props done.\n");
+    SEDCLI_DEBUG_PARAM("Host props done with status %d\n", ret);
 
     return ret;
 }
@@ -1221,7 +1242,7 @@ static int opal_start_generic_session(int fd, struct opal_device *dev, uint8_t *
 {
     bool auth_is_anybody = compare_uid(auth_uid, opal_uid[OPAL_ANYBODY_UID]);
     if (auth_is_anybody == false && key == NULL) {
-        SEDCLI_DEBUG_MSG("Must provide password for this authority\n");
+        SEDCLI_DEBUG_MSG("Must provide password for this authority.\n");
         return -EINVAL;
     }
 
@@ -1235,7 +1256,7 @@ static int opal_start_generic_session(int fd, struct opal_device *dev, uint8_t *
         cmd_len = 3;
     }
 
-    SEDCLI_DEBUG_MSG("Starting generic session.\n");
+    SEDCLI_DEBUG_MSG("Starting generic session...\n");
     prepare_req_buf(dev, start_sess_cmd, cmd_len, opal_uid[OPAL_SM_UID], opal_method[OPAL_STARTSESSION_METHOD_UID]);
 
     int ret = opal_snd_rcv_cmd_parse_chk(fd, dev, false);
@@ -1293,7 +1314,7 @@ static int opal_start_auth_session(int fd, struct opal_device *dev, bool sum, ui
 
     prep_session_buff(opal_uid[OPAL_LOCKING_SP_UID], key, user_uid);
 
-    SEDCLI_DEBUG_MSG("Starting authority session.\n");
+    SEDCLI_DEBUG_MSG("Starting authority session...\n");
     prepare_req_buf(dev, start_sess_cmd, ARRAY_SIZE(start_sess_cmd), opal_uid[OPAL_SM_UID], opal_method[OPAL_STARTSESSION_METHOD_UID]);
 
     int ret = opal_snd_rcv_cmd_parse_chk(fd, dev, false);
@@ -1317,6 +1338,8 @@ static int opal_end_session(int fd, struct opal_device *dev)
     uint8_t *buf = dev->req_buf + sizeof(struct opal_header);
     size_t buf_len = dev->req_buf_size - sizeof(struct opal_header);
     int pos = append_u8(buf, buf_len, OPAL_ENDOFSESSION);
+
+    SEDCLI_DEBUG_MSG("Ending session...\n");
 
     prepare_cmd_header(dev, buf, pos);
 
@@ -1764,8 +1787,8 @@ int opal_setup_global_range_pt(struct sed_device *dev, const struct sed_key *key
 {
     struct opal_device *opal_dev = dev->priv;
 
-    int status = opal_start_admin1_lsp_session(dev->fd, opal_dev, key);
-    if (status)
+    int ret = opal_start_admin1_lsp_session(dev->fd, opal_dev, key);
+    if (ret)
         goto end_session;
 
     generic_enable_disable_global_lr_cmd[5].val.byte = rle == SED_FLAG_ENABLED ? 1 : 0;
@@ -1774,14 +1797,14 @@ int opal_setup_global_range_pt(struct sed_device *dev, const struct sed_key *key
     prepare_req_buf(opal_dev, generic_enable_disable_global_lr_cmd, ARRAY_SIZE(generic_enable_disable_global_lr_cmd),
         opal_uid[OPAL_LOCKINGRANGE_GLOBAL_UID], opal_method[OPAL_SET_METHOD_UID]);
 
-    status = opal_snd_rcv_cmd_parse_chk(dev->fd, opal_dev, false);
+    ret = opal_snd_rcv_cmd_parse_chk(dev->fd, opal_dev, false);
 
     opal_put_all_tokens(opal_dev->payload.tokens, &opal_dev->payload.len);
 
 end_session:
     opal_end_session(dev->fd, opal_dev);
 
-    return status;
+    return ret;
 }
 
 static struct opal_req_item setup_locking_range_prefix[] = {
@@ -2225,8 +2248,7 @@ static int list_lr(int fd, struct opal_device *dev, struct sed_opal_locking_rang
             return ret;
         }
 
-        struct sed_opal_lockingrange *lr = &lrs->lrs[i];
-
+        struct sed_opal_locking_range *lr = &lrs->lrs[i];
         lr->lr_id = i;
         lr->start = dev->payload.tokens[4]->vals.uint;
         lr->length = dev->payload.tokens[8]->vals.uint;
@@ -2447,8 +2469,11 @@ static int parse_lr_str(char *item_str, uint32_t *item, size_t item_size, bool *
 
                 if (!memcmp(uid, user_lr, sizeof(uint8_t) * (OPAL_UID_LENGTH - 1)))
                     parsed = uid[OPAL_UID_LENGTH - 1];
-                else
+                else {
+                    for (int i = 0; i < OPAL_UID_LENGTH; i++)
+                        item[i] = uid[i];
                     return -EINVAL;
+                }
             }
 
             if (count < item_size) {
@@ -2536,9 +2561,6 @@ int opal_activate_sp_pt(struct sed_device *dev, const struct sed_key *key, uint8
     if (ret)
         goto end_session;
 
-    ret = opal_get_lsp_lifecycle(dev->fd, dev->priv, OPAL_LOCKING_SP_UID);
-    SEDCLI_DEBUG_PARAM("current lifecycle is: %d\n", ret);
-
     ret = opal_activate_sp(dev->fd, dev->priv, target_sp_uid, false, lr, num_lrs, is_locking_table, range_start_length_policy, dsts, num_dsts, NULL);
 
 end_session:
@@ -2558,9 +2580,16 @@ int opal_revert_lsp_pt(struct sed_device *dev, const struct sed_key *key, uint8_
     if (ret)
         goto end_session;
 
-    return opal_revert_lsp(dev->fd, dev->priv, keep_global_range_key);
+    ret = opal_revert_lsp(dev->fd, dev->priv, keep_global_range_key);
+    if (ret) {
+        SEDCLI_DEBUG_PARAM("Revert LSP failed with status: %d\n", ret);
+        goto end_session;
+    }
+
+    return ret;
 
 end_session:
+    SEDCLI_DEBUG_MSG("Revert LSP with end session.\n");
     opal_end_session(dev->fd, dev->priv);
 
     return ret;
@@ -2658,26 +2687,40 @@ int opal_set_password_pt(struct sed_device *dev, uint8_t *sp_uid, uint8_t *auth_
 
     uint8_t uid[OPAL_UID_LENGTH] = { 0 };
 
-    if (compare_uid(user_uid, opal_uid[OPAL_SID_UID]))
+    if (compare_uid(user_uid, opal_uid[OPAL_SID_UID])) {
+        SEDCLI_DEBUG_MSG("Setting password for SID user.\n");
         memcpy(&uid, opal_uid[OPAL_C_PIN_SID_UID], sizeof(uint8_t) * OPAL_UID_LENGTH);
+    }
     else if(compare_uid_range(user_uid, opal_uid[OPAL_ADMIN1_UID], 1, 4)) {
+        SEDCLI_DEBUG_MSG("Setting password for admin user from locking sp table.\n");
         memcpy(&uid, opal_uid[OPAL_C_PIN_LOCKING_SP_ADMIN1_UID], sizeof(uint8_t) * OPAL_UID_LENGTH);
-        // align last admin uid byte to given admin id
+        // align last uid byte to given admin id from locking sp
         uid[7] = user_uid[7];
     } else if(compare_uid_range(user_uid, opal_uid[OPAL_USER1_UID], 1, 9)) {
+        SEDCLI_DEBUG_MSG("Setting password for user from locking sp table.\n");
         memcpy(&uid, opal_uid[OPAL_C_PIN_USER1_UID], sizeof(uint8_t) * OPAL_UID_LENGTH);
-        // align last admin uid byte to given admin id
+        // align last uid byte to given user id
+        uid[7] = user_uid[7];
+    } else if(compare_uid_range(user_uid, opal_uid[OPAL_ADMIN1_ADMIN_SP_UID], 1, 9)) {
+        SEDCLI_DEBUG_MSG("Setting password for admin from admin sp table.\n");
+        memcpy(&uid, opal_uid[OPAL_C_PIN_ADMIN_SP_ADMIN1_UID], sizeof(uint8_t) * OPAL_UID_LENGTH);
+        // align last uid byte to given admin id from admin sp
         uid[7] = user_uid[7];
     } else if (compare_uid(user_uid, opal_uid[OPAL_C_PIN_SID_UID])) {
-        memcpy(&uid, opal_uid[OPAL_C_PIN_SID_UID], sizeof(uint8_t) * OPAL_UID_LENGTH);
+        SEDCLI_DEBUG_MSG("Setting password for SID with C_PIN table.\n");
+        memcpy(&uid, user_uid, sizeof(uint8_t) * OPAL_UID_LENGTH);
     } else if(compare_uid_range(user_uid, opal_uid[OPAL_C_PIN_ADMIN_SP_ADMIN1_UID], 1, 4)) {
+        SEDCLI_DEBUG_MSG("Setting password for admin with C_PIN table from admin sp table.\n");
         memcpy(&uid, user_uid, sizeof(uint8_t) * OPAL_UID_LENGTH);
     } else if(compare_uid_range(user_uid, opal_uid[OPAL_C_PIN_LOCKING_SP_ADMIN1_UID], 1, 4)) {
+        SEDCLI_DEBUG_MSG("Setting password for admin with C_PIN table from locking sp table.\n");
+        memcpy(&uid, user_uid, sizeof(uint8_t) * OPAL_UID_LENGTH);
+    } else if(compare_uid_range(user_uid, opal_uid[OPAL_C_PIN_USER1_UID], 1, 4)) {
+        SEDCLI_DEBUG_MSG("Setting password for user with C_PIN table from locking sp table.\n");
         memcpy(&uid, user_uid, sizeof(uint8_t) * OPAL_UID_LENGTH);
     } else {
-        SEDCLI_DEBUG_MSG("User not supported.\n");
-        ret = -EINVAL;
-        goto end_session;
+        SEDCLI_DEBUG_MSG("Setting password - warning - user uid doesn't found.\n");
+        memcpy(&uid, user_uid, sizeof(uint8_t) * OPAL_UID_LENGTH);
     }
 
     ret = opal_set_password(dev->fd, dev->priv, uid, new_user_key);
@@ -3051,11 +3094,11 @@ int opal_parse_tper_state_pt(struct sed_device *dev, struct sed_tper_state *tper
 
     int ret = opal_level0_discovery_pt(dev);
     if (ret) {
-        SEDCLI_DEBUG_MSG("Error in level0 discovery.\n");
+        SEDCLI_DEBUG_PARAM("Error in level0 discovery: %d\n", ret);
         return ret;
     }
 
-    tper_state->locking_en = dev->discv.sed_lvl0_discv.sed_locking.locking_en ? 1 : 0;
+    tper_state->locking_en = dev->discovery.sed_lvl0_discovery.sed_locking.locking_en ? 1 : 0;
 
     ret = opal_start_generic_session(dev->fd, dev->priv, opal_uid[OPAL_ADMIN_SP_UID], opal_uid[OPAL_ANYBODY_UID], NULL);
     tper_state->session_open = ret;
@@ -3067,7 +3110,7 @@ int opal_parse_tper_state_pt(struct sed_device *dev, struct sed_tper_state *tper
         tper_state->admisp_lc = SED_UNKNOWN_ERROR;
         tper_state->lsp_lc = SED_UNKNOWN_ERROR;
     } else {
-        tper_state->blk_sid_val_state = dev->discv.sed_lvl0_discv.sed_block_sid.sid_valuestate ? 1 : 0;
+        tper_state->blk_sid_val_state = dev->discovery.sed_lvl0_discovery.sed_block_sid.sid_valuestate ? 1 : 0;
 
         ret = opal_get_lsp_lifecycle(dev->fd, dev->priv, OPAL_ADMIN_SP_UID);
         tper_state->admisp_lc = ret;
@@ -3379,10 +3422,13 @@ int opal_reactivate_sp_pt(struct sed_device *dev, const struct sed_key *key, uin
     uint32_t lr[OPAL_MAX_LRS] = { 0 };
     bool is_locking_table = false;
     int num_lrs = parse_lr_str(lr_str, lr, OPAL_MAX_LRS, &is_locking_table);
-    if ((is_locking_table && num_lrs > 1) ||
-        (num_lrs < 0 && is_locking_table == false)) {
+    if ((is_locking_table && num_lrs > 1)) {
         SEDCLI_DEBUG_MSG("Invalid Locking Ranges number.\n");
         return -EINVAL;
+    }
+    if (is_locking_table == false && num_lrs < 0) {
+        SEDCLI_DEBUG_MSG("Locking range not found, but passing it to device.\n");
+        num_lrs = 1;
     }
 
     uint32_t dsts[OPAL_MAX_DSTS] = { 0 };

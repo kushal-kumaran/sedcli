@@ -128,7 +128,7 @@ static void print_short_usage(const app *app_values)
 
 static void print_info(const app *app_values)
 {
-    sedcli_printf(LOG_INFO, "Try `%s --help | -H' for more information.\n", app_values->name);
+    sedcli_printf(LOG_INFO, "Try `%s --help' for more information.\n", app_values->name);
 }
 
 char *get_short_name_string(const char short_name, char *buf)
@@ -348,8 +348,11 @@ void print_help(const app *app_values, const cli_command *commands)
         if (is_command_hidden(commands, i))
             continue;
 
-        get_short_name_string(commands[i].short_name, short_name);
-        sedcli_printf(LOG_INFO, "%s%-4s--%-25s%s\n", PADDING, short_name, commands[i].name, commands[i].desc);
+        char* buf = get_short_name_string(commands[i].short_name, short_name);
+        if (buf[0])
+            sedcli_printf(LOG_INFO, "%s%-4s--%-25s%s\n", PADDING, short_name, commands[i].name, commands[i].desc);
+        else
+            sedcli_printf(LOG_INFO, "%s--%-25s%s\n", PADDING, commands[i].name, commands[i].desc);
     }
 
     sedcli_printf(LOG_INFO, "\nSee 'sedcli <command> --help' for more information on a specific command.\n"
@@ -418,6 +421,11 @@ static int args_is(const char *in, const char *arg, const char c)
 static int is_help(const char* cmd)
 {
     return args_is(cmd, "help", 'H');
+}
+
+static int is_version(const char* cmd)
+{
+    return args_is(cmd, "version", 'V');
 }
 
 static int get_help_position(int argc, char **argv)
@@ -491,26 +499,26 @@ void log_command(int argc, char **argv, int result, long long int timespan)
 }
 
 static const char *sed_statuses[] = {
-    [SED_SUCCESS] = "SUCCESS",
-    [SED_NOT_AUTHORIZED] = "NOT_AUTHORIZED",
-    [SED_UNKNOWN_ERROR] = "OBSOLETE", // as in spec
-    [SED_SP_BUSY] = "SP_BUSY",
-    [SED_SP_FAILED] = "SP_FAILED",
-    [SED_SP_DISABLED] = "SP_DISABLED",
-    [SED_SP_FROZEN] = "SP_FROZEN",
-    [SED_NO_SESSIONS_AVAILABLE] = "NO_SESSIONS_AVAILABLE",
-    [SED_UNIQUENESS_CONFLICT] = "UNIQUENESS_CONFLICT",
-    [SED_INSUFFICIENT_SPACE] = "INSUFFICIENT_SPACE",
-    [SED_INSUFFICIENT_ROWS] = "INSUFFICIENT_ROWS",
-    [SED_INVALID_FUNCTION] = "OBSOLETE", // not in spec
-    [SED_INVALID_PARAMETER] = "INVALID PARAMETER",
-    [SED_INVALID_REFERENCE] = "OBSOLETE", // as in spec
-    [SED_UNKNOWN_ERROR_1] = "OBSOLETE",  // as in spec
-    [SED_TPER_MALFUNCTION] = "TPER_MALFUNCTION",
-    [SED_TRANSACTION_FAILURE] = "TRANSACTION_FAILURE",
-    [SED_RESPONSE_OVERFLOW] = "RESPONSE_OVERFLOW",
-    [SED_AUTHORITY_LOCKED_OUT] = "AUTHORITY_LOCKED_OUT",
-    [SED_FAIL] = "FAIL",
+    /* 0x00 */ [SED_SUCCESS] = "SUCCESS",
+    /* 0x01 */ [SED_NOT_AUTHORIZED] = "NOT_AUTHORIZED",
+    /* 0x02 */ [SED_UNKNOWN_ERROR] = "OBSOLETE", // as in spec
+    /* 0x03 */ [SED_SP_BUSY] = "SP_BUSY",
+    /* 0x04 */ [SED_SP_FAILED] = "SP_FAILED",
+    /* 0x05 */ [SED_SP_DISABLED] = "SP_DISABLED",
+    /* 0x06 */ [SED_SP_FROZEN] = "SP_FROZEN",
+    /* 0x07 */ [SED_NO_SESSIONS_AVAILABLE] = "NO_SESSIONS_AVAILABLE",
+    /* 0x08 */ [SED_UNIQUENESS_CONFLICT] = "UNIQUENESS_CONFLICT",
+    /* 0x09 */ [SED_INSUFFICIENT_SPACE] = "INSUFFICIENT_SPACE",
+    /* 0x0A */ [SED_INSUFFICIENT_ROWS] = "INSUFFICIENT_ROWS",
+    /* 0x0B */ [SED_INVALID_FUNCTION] = "OBSOLETE", // not in spec
+    /* 0x0C */ [SED_INVALID_PARAMETER] = "INVALID PARAMETER",
+    /* 0x0D */ [SED_INVALID_REFERENCE] = "OBSOLETE", // as in spec
+    /* 0x0E */ [SED_UNKNOWN_ERROR_1] = "OBSOLETE",  // as in spec
+    /* 0x0F */ [SED_TPER_MALFUNCTION] = "TPER_MALFUNCTION",
+    /* 0x10 */ [SED_TRANSACTION_FAILURE] = "TRANSACTION_FAILURE",
+    /* 0x11 */ [SED_RESPONSE_OVERFLOW] = "RESPONSE_OVERFLOW",
+    /* 0x12 */ [SED_AUTHORITY_LOCKED_OUT] = "AUTHORITY_LOCKED_OUT",
+    /* 0x3F */ [SED_FAIL] = "FAIL",
 };
 
 const char *sed_error_text(int sed_status)
@@ -558,6 +566,15 @@ static void print_sed_status(int status)
         if (status == KMIP_SUCCESS_CONNECTED)
             sedcli_printf(LOG_ERR, "sedcli-kmip: Successful connection to the KMIP server.\n");
     } else {
+        if (nvme_error == 4)
+        {
+            sedcli_printf(LOG_ERR, "sedcli: IOCTL error: 0x04 Interrupted system call.\n");
+            return;
+        } else if (nvme_error == 5) {
+            sedcli_printf(LOG_ERR, "sedcli: IOCTL error: 0x05 I/O error.\n");
+            return;
+        }
+
         sed_status = sed_error_text(status);
         if (sed_status == NULL && status > 0 && status <= 0xFFFF) {
             if (nvme_error) {
@@ -567,7 +584,7 @@ static void print_sed_status(int status)
                     status, nes.error_bits.SC, nes.error_bits.SCT, nes.error_bits.CRD, nes.error_bits.M, nes.error_bits.DNR);
             }
             else
-                sedcli_printf(LOG_ERR, "status: Unknown status.\n");
+                sedcli_printf(LOG_ERR, "status: Unknown status: %d\n", status);
         }
         else
             sedcli_printf((status == 0) ? LOG_INFO : LOG_ERR, "status: 0x%02x %s\n", status, sed_status);
@@ -611,7 +628,7 @@ int run_command(cli_command *commands, int cmd, int argc, char **argv)
 
     /* execute command */
     result = commands[cmd].handle();
-    if (is_help(argv[1]) == false)
+    if (is_help(argv[1]) == false && is_version(argv[1]) == false)
         print_sed_status(result);
 
     clock_gettime(CLOCK_REALTIME, &t1);

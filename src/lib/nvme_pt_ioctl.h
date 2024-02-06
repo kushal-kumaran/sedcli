@@ -115,6 +115,7 @@ enum opaluid {
     OPAL_TPEREXCH_UID,
     OPAL_ADMINEXCH_UID,
     OPAL_ISSUERS_UID,
+    OPAL_ADMIN1_ADMIN_SP_UID = OPAL_ISSUERS_UID,
     OPAL_EDITORS_UID,
     OPAL_DELETERS_UID,
     OPAL_SERVERS_UID,
@@ -275,13 +276,13 @@ struct geometry_feat {
     } __attribute__((__packed__)) rsvd_align;
     uint8_t rsvd2[7];
     uint32_t logical_blk_sz;
-    uint64_t alignmnt_granlrty;
+    uint64_t alignment_granularity;
     uint64_t lowest_aligned_lba;
 } __attribute__((__packed__));
 
 struct datastore_feat {
     uint16_t max_num_datastores;
-    uint32_t max_total_size_datstr_tbls;
+    uint32_t max_total_size_datastore_tbls;
     uint32_t datastore_size_align;
 } __attribute__((__packed__));
 
@@ -323,18 +324,11 @@ struct pyrite_feat {
 } __attribute__((__packed__));
 
 struct data_rm_feat {
-    uint8_t reserved;
-    struct {
-        uint8_t rm_op_processing : 1;
-        uint8_t rsvd1 : 7;
-    } __attribute__((__packed__)) rmopprocessing_rsvd;
-    uint8_t supp_data_rm;
-    struct {
-        uint8_t data_rm_time_fmt : 6;
-        uint8_t rsvd2:2;
-    } __attribute__((__packed__)) datarmtimefmtbits_rsvd;
-    uint16_t data_rm_time[6];
-    uint8_t reserved2[16];
+    uint8_t data[36];
+} __attribute__((__packed__));
+
+struct siis_feat {
+    uint8_t data[16];
 } __attribute__((__packed__));
 
 struct sum_feat {
@@ -363,13 +357,9 @@ struct opal_l0_feat {
         struct {
             struct tper_feat flags;
         } __attribute__((__packed__))tper;
-
         struct{
             struct locking_feat flags;
         } __attribute__((__packed__)) locking;
-
-        struct geometry_feat geometry;
-        struct datastore_feat datastore;
         struct opalv100_feat opalv100;
         struct opalv200_feat opalv200;
         struct opalv200_feat ruby;
@@ -401,17 +391,14 @@ struct opal_level0_feat_desc {
             struct tper_feat flags;
             uint8_t reserved[11];
         } __attribute__((__packed__)) tper;
-
         struct {
             struct locking_feat flags;
             uint8_t reserved[11];
         } __attribute__((__packed__)) locking;
-
         struct {
             uint8_t reserved[2];
             struct datastore_feat datastore;
         } datastore;
-
         struct geometry_feat geometry;
         struct opalv100_feat opalv100;
         struct opalv200_feat opalv200;
@@ -421,6 +408,7 @@ struct opal_level0_feat_desc {
         struct data_rm_feat data_rm;
         struct block_sid_feat block_sid;
         struct cnl_feat cnl;
+        struct siis_feat siis;
         struct sum_feat sum;
     } feat;
 } __attribute__((__packed__)) ;
@@ -471,7 +459,7 @@ int opal_init_pt(struct sed_device *dev, const char *device_path, bool try);
 
 int opal_host_prop_pt(struct sed_device *dev, const char *props, uint32_t *vals);
 
-int opal_dev_discovery_pt(struct sed_device *dev, struct sed_opal_device_discovery *discv);
+int opal_dev_discovery_pt(struct sed_device *dev, struct sed_opal_device_discovery *discovery);
 
 int opal_parse_tper_state_pt(struct sed_device *dev, struct sed_tper_state *tper_state);
 

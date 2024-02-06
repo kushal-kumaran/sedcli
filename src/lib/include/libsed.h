@@ -19,8 +19,8 @@
 #define OPAL_MAX_DSTS 256
 
 #define MAX_PROP_NAME_LEN 32
-#define NUM_TPER_PROPS    23
-#define NUM_HOST_PROPS    10
+#define NUM_TPER_PROPS    50
+#define NUM_HOST_PROPS    20
 
 #define SED_OPAL_MANUFACTURED_INACTIVE 0x08
 
@@ -78,14 +78,14 @@ enum SED_AUTHORITY {
 struct sed_device;
 
 struct sed_tper_feat {
-    uint8_t sync_supp : 1;
-    uint8_t async_supp : 1;
-    uint8_t ack_nak_supp : 1;
-    uint8_t buff_mgmt_supp : 1;
-    uint8_t stream_supp : 1;
-    uint8_t reserved1 : 1;
+    uint8_t sync_supp       : 1;
+    uint8_t async_supp      : 1;
+    uint8_t ack_nak_supp    : 1;
+    uint8_t buff_mgmt_supp  : 1;
+    uint8_t stream_supp     : 1;
+    uint8_t reserved1       : 1;
     uint8_t comid_mgmt_supp : 1;
-    uint8_t reserved2 : 1;
+    uint8_t reserved        : 1;
     uint16_t code;
     uint8_t rev;
     uint8_t len;
@@ -93,12 +93,12 @@ struct sed_tper_feat {
 
 struct sed_locking_feat {
     uint8_t locking_supp : 1;
-    uint8_t locking_en : 1;
-    uint8_t locked : 1;
-    uint8_t media_enc : 1;
-    uint8_t mbr_en : 1;
-    uint8_t mbr_done : 1;
-    uint8_t mbr_shadowing_not_supported : 1;
+    uint8_t locking_en   : 1;
+    uint8_t locked       : 1;
+    uint8_t media_enc    : 1;
+    uint8_t mbr_en       : 1;
+    uint8_t mbr_done     : 1;
+    uint8_t mbr_shadowing_not_supported        : 1;
     uint8_t mbr_hw_reset_for_lor_dor_supported : 1;
     uint16_t code;
     uint8_t rev;
@@ -107,12 +107,12 @@ struct sed_locking_feat {
 
 struct sed_geometry_feat {
     struct {
-        uint8_t align : 1;
-        uint8_t rsvd1 : 7 ;
-    } __attribute__((__packed__)) rsvd_align;
-    uint8_t rsvd2[7];
+        uint8_t align    : 1;
+        uint8_t reserved : 7;
+    } __attribute__((__packed__)) align;
+    uint8_t reserved2[7];
     uint32_t logical_blk_sz;
-    uint64_t alignmnt_granlrty;
+    uint64_t alignmnt_granularity;
     uint64_t lowest_aligned_lba;
     uint16_t code;
     uint8_t rev;
@@ -121,7 +121,7 @@ struct sed_geometry_feat {
 
 struct sed_datastore_feat {
     uint16_t max_num_datastores;
-    uint32_t max_total_size_datstr_tbls;
+    uint32_t max_total_size_datastore_tables;
     uint32_t datastore_size_align;
     uint16_t code;
     uint8_t rev;
@@ -141,8 +141,8 @@ struct sed_opalv200_feat {
     uint16_t comid_num;
     struct {
         uint8_t range_crossing : 1;
-        uint8_t rsvd1 : 7;
-    } __attribute__((__packed__)) rangecross_rsvd;
+        uint8_t reserved       : 7;
+    } __attribute__((__packed__));
     uint16_t admin_lp_auth_num;
     uint16_t user_lp_auth_num;
     uint8_t init_pin;
@@ -152,7 +152,7 @@ struct sed_opalv200_feat {
     union {
         struct {
             uint8_t feature_descriptor_version : 4;
-            uint8_t ssc_minor_version : 4;
+            uint8_t ssc_minor_version          : 4;
         } __attribute__((__packed__)) ver;
         uint8_t rev;
     } rev;
@@ -171,19 +171,21 @@ struct sed_pyrite_feat {
     uint8_t len;
 } __attribute__((__packed__));
 
+#define DR_TIME_FOR_SUPPORTED_DRM_BITS_COUNT 6
 struct sed_data_rm_feat {
     uint8_t reserved;
     struct {
-        uint8_t rm_op_processing:1;
-        uint8_t rsvd1:7;
-    } __attribute__((__packed__)) rmopprocessing_rsvd;
-    uint8_t supp_data_rm;
-    struct {
-        uint8_t data_rm_time_fmt : 6;
-        uint8_t rsvd2:2;
-    } __attribute__((__packed__)) datarmtimefmtbits_rsvd;
-    uint16_t data_rm_time[6];
-    uint8_t reserved2[16];
+        uint8_t dr_operation_interrupted : 1;
+        uint8_t dr_operation_processing  : 1;
+        uint8_t reserved2                : 6;
+    } __attribute__((__packed__));
+    uint8_t supported_drm;
+    uint8_t dr_time_format_for_bit;
+    uint16_t dr_time_for_supported_drm_bits[DR_TIME_FOR_SUPPORTED_DRM_BITS_COUNT];
+    uint8_t reserved3[16];
+    uint16_t code;
+    uint8_t rev;
+    uint8_t len;
 } __attribute__((__packed__));
 
 struct sed_tper_properties {
@@ -194,13 +196,13 @@ struct sed_tper_properties {
 } __attribute__((__packed__));
 
 struct sed_block_sid_feat {
-    uint8_t sid_valuestate : 1;
-    uint8_t sid_blockstate : 1;
-    uint8_t lsp_freeze_lock_support : 1 ;
-    uint8_t lsp_freeze_lock_state : 1;
-    uint8_t reserved1 : 4;
-    uint8_t hardware_reset : 1;
-    uint8_t reserved2 : 7;
+    uint8_t sid_valuestate          : 1;
+    uint8_t sid_blockstate          : 1;
+    uint8_t lsp_freeze_lock_support : 1;
+    uint8_t lsp_freeze_lock_state   : 1;
+    uint8_t reserved1               : 4;
+    uint8_t hardware_reset          : 1;
+    uint8_t reserved2               : 7;
     uint8_t reserved3[10];
     uint16_t code;
     uint8_t rev;
@@ -209,9 +211,9 @@ struct sed_block_sid_feat {
 
 struct sed_sum_feat {
     uint32_t number_of_locking_objects_supported;
-    uint8_t any : 1;
-    uint8_t all : 1;
-    uint8_t policy : 1;
+    uint8_t any      : 1;
+    uint8_t all      : 1;
+    uint8_t policy   : 1;
     uint8_t reserved : 5;
     uint16_t code;
     uint8_t rev;
@@ -220,17 +222,33 @@ struct sed_sum_feat {
 
 struct sed_cnl_feat {
     struct {
-        uint8_t rsvd1 : 5;
-        uint8_t sum_c : 1;
-        uint8_t range_p : 1;
-        uint8_t range_c : 1;
-    } __attribute__((__packed__)) ranges_rsvd;
-    uint8_t rsvd2[3];
+        uint8_t reseverd : 5;
+        uint8_t sum_c    : 1;
+        uint8_t range_p  : 1;
+        uint8_t range_c  : 1;
+    } __attribute__((__packed__));
+    uint8_t reseverd2[3];
     uint32_t max_key_count;
     uint32_t unused_key_count;
     uint32_t max_ranges_per_ns;
     uint16_t code;
     uint8_t rev;
+    uint8_t len;
+} __attribute__((__packed__));
+
+struct sed_siis_feat {
+    uint8_t siis_revision_number;
+    struct {
+        uint8_t reseverd2                : 5;
+        uint8_t identifier_usage_scope   : 2;
+        uint8_t key_change_zone_behavior : 1;
+    } __attribute__((__packed__));
+    uint8_t reseverd3[10];
+    uint16_t code;
+    struct {
+        uint8_t data_structure_version : 4;
+        uint8_t reseverd               : 4;
+    } __attribute__((__packed__));
     uint8_t len;
 } __attribute__((__packed__));
 
@@ -243,20 +261,21 @@ struct sed_opal_level0_discovery_header {
 
 struct sed_opal_level0_discovery {
     struct {
-        uint64_t feat_tper:1;
-        uint64_t feat_locking:1;
-        uint64_t feat_geometry:1;
-        uint64_t feat_datastore:1;
-        uint64_t feat_opalv100:1;
-        uint64_t feat_opalv200:1;
-        uint64_t feat_ruby:1;
-        uint64_t feat_pyritev100:1;
-        uint64_t feat_pyritev200:1;
-        uint64_t feat_data_rm:1;
-        uint64_t feat_block_sid:1;
-        uint64_t feat_sum:1;
-        uint64_t feat_cnl:1;
-        uint64_t reserved:51;
+        uint64_t feat_tper       : 1;
+        uint64_t feat_locking    : 1;
+        uint64_t feat_geometry   : 1;
+        uint64_t feat_datastore  : 1;
+        uint64_t feat_opalv100   : 1;
+        uint64_t feat_opalv200   : 1;
+        uint64_t feat_ruby       : 1;
+        uint64_t feat_pyritev100 : 1;
+        uint64_t feat_pyritev200 : 1;
+        uint64_t feat_data_rm    : 1;
+        uint64_t feat_block_sid  : 1;
+        uint64_t feat_sum        : 1;
+        uint64_t feat_cnl        : 1;
+        uint64_t feat_siis       : 1;
+        uint64_t reserved        : 50;
     } __attribute__((__packed__)) feat_avail_flag;
 
     struct sed_tper_feat sed_tper;
@@ -272,11 +291,12 @@ struct sed_opal_level0_discovery {
     struct sed_block_sid_feat sed_block_sid;
     struct sed_sum_feat sed_sum;
     struct sed_cnl_feat sed_cnl;
+    struct sed_siis_feat sed_siis;
 };
 
 struct sed_opal_device_discovery {
-    struct sed_opal_level0_discovery_header sed_lvl0_discv_header;
-    struct sed_opal_level0_discovery sed_lvl0_discv;
+    struct sed_opal_level0_discovery_header sed_lvl0_discovery_header;
+    struct sed_opal_level0_discovery sed_lvl0_discovery;
     struct sed_tper_properties sed_tper_props;
     struct sed_tper_properties sed_host_props;
 };
@@ -294,18 +314,18 @@ struct sed_key {
     uint8_t len;
 };
 
-struct sed_opal_lockingrange {
+struct sed_opal_locking_range {
     size_t start;
     size_t length;
-    uint8_t lr_id:4;
-    uint8_t read_locked:1;
-    uint8_t write_locked:1;
-    uint8_t rle:1;
-    uint8_t wle:1;
+    uint8_t lr_id        : 4;
+    uint8_t read_locked  : 1;
+    uint8_t write_locked : 1;
+    uint8_t rle          : 1;
+    uint8_t wle          : 1;
 };
 
 struct sed_opal_locking_ranges {
-    struct sed_opal_lockingrange lrs[SED_OPAL_MAX_LRS];
+    struct sed_opal_locking_range lrs[SED_OPAL_MAX_LRS];
     uint8_t lr_num;
 };
 
@@ -398,7 +418,7 @@ int sed_init(struct sed_device **dev, const char *dev_path, bool try);
 int sed_host_prop(struct sed_device *dev, const char *prop, uint32_t *val);
 
 int sed_dev_discovery(struct sed_device *dev,
-    struct sed_opal_device_discovery *discv);
+    struct sed_opal_device_discovery *discovery);
 
 int sed_parse_tper_state(struct sed_device *dev,
     struct sed_tper_state *tper_state);

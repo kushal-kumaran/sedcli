@@ -187,7 +187,7 @@ int sed_init(struct sed_device **dev, const char *dev_path, bool try)
     int status = curr_if->init_fn(ret, dev_path, try);
     if (status != 0) {
         sed_deinit(ret);
-        SEDCLI_DEBUG_PARAM("Error initializing the device: %s\nStatus: %d\n", dev_path, status);
+        SEDCLI_DEBUG_PARAM("Error initializing the device: %s with status: %d\n", dev_path, status);
         nvme_error = status;
         return status;
     }
@@ -205,12 +205,12 @@ int sed_host_prop(struct sed_device *dev, const char *props, uint32_t *vals)
     return curr_if->host_prop_fn(dev, props, vals);
 }
 
-int sed_dev_discovery(struct sed_device *dev, struct sed_opal_device_discovery *discv)
+int sed_dev_discovery(struct sed_device *dev, struct sed_opal_device_discovery *discovery)
 {
     if (curr_if->dev_discovery_fn == NULL)
         return -EOPNOTSUPP;
 
-    return curr_if->dev_discovery_fn(dev, discv);
+    return curr_if->dev_discovery_fn(dev, discovery);
 }
 
 int sed_parse_tper_state(struct sed_device *dev, struct sed_tper_state *tper_state)
