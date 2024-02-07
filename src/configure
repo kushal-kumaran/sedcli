@@ -46,10 +46,10 @@ function test_compile() {
 }
 
 function generate_version() {
-    SEDCLI_KMIP_VERSION="1.1"
+    SEDCLI_KMIP_VERSION="1.2"
     echo "#define SEDCLI_KMIP_VERSION (\"${SEDCLI_KMIP_VERSION}\")" >> ${CONFIG_H}
 
-    SEDCLI_VERSION="1.1"
+    SEDCLI_VERSION="1.2"
     echo "#define SEDCLI_VERSION (\"${SEDCLI_VERSION}\")" >> ${CONFIG_H}
 }
 

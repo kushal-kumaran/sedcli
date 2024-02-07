@@ -12,7 +12,7 @@
 
 struct sed_device {
     int fd;
-    struct sed_opal_device_discovery discv;
+    struct sed_opal_device_discovery discovery;
     void *priv;
 };
 

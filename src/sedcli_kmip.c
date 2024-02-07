@@ -90,8 +90,7 @@ static cli_option get_lock_info_opts[] = {
 static cli_command sedcli_commands[] = {
     {
         .name = "provision",
-        .short_name = 'P',
-        .desc = "Provision disk for security",
+        .desc = "Provision disk for security.",
         .long_desc = NULL,
         .options = provision_opts,
         .options_parse = handle_provision_opts,
@@ -101,8 +100,7 @@ static cli_command sedcli_commands[] = {
     },
     {
         .name = "lock-unlock",
-        .short_name = 'L',
-        .desc = "Lock or unlock global locking range",
+        .desc = "Lock or unlock global locking range.",
         .long_desc = "Lock or unlock global locking range in Locking SP using key retrieved from KMS.",
         .options = lock_unlock_opts,
         .options_parse = handle_lock_unlock_opts,
@@ -112,9 +110,8 @@ static cli_command sedcli_commands[] = {
     },
     {
         .name = "revert-tper",
-        .short_name = 'X',
-        .desc = "Revert TPer",
-        .long_desc = "Revert TPer",
+        .desc = "Revert TPer.",
+        .long_desc = "Revert TPer.",
         .options = revert_tper_opts,
         .options_parse = handle_revert_tper_opts,
         .handle = handle_revert_tper,
@@ -123,9 +120,8 @@ static cli_command sedcli_commands[] = {
     },
     {
         .name = "get-lock-info",
-        .short_name = 'G',
-        .desc = "Get Lock info",
-        .long_desc = "Get Lock info",
+        .desc = "Get Lock info.",
+        .long_desc = "Get Lock info.",
         .options = get_lock_info_opts,
         .options_parse = handle_get_lock_info_opts,
         .handle = handle_get_lock_info,
@@ -134,9 +130,8 @@ static cli_command sedcli_commands[] = {
     },
     {
         .name = "connection-test",
-        .short_name = 'C',
-        .desc = "Connection test",
-        .long_desc = NULL,
+        .desc = "Connection test.",
+        .long_desc = "Connection test.",
         .options = connection_opts,
         .options_parse = handle_connection_test_opts,
         .handle = handle_connection_test,
@@ -145,9 +140,8 @@ static cli_command sedcli_commands[] = {
     },
     {
         .name = "scan",
-        .short_name = 'S',
-        .desc = "Scans avaliable drives",
-        .long_desc = NULL,
+        .desc = "Scans available drives.",
+        .long_desc = "Scans available drives.",
         .options = NULL,
         .options_parse = NULL,
         .handle = handle_scan,
@@ -156,9 +150,8 @@ static cli_command sedcli_commands[] = {
     },
     {
         .name = "version",
-        .short_name = 'V',
-        .desc = "Print sedcli-kmip version",
-        .long_desc = NULL,
+        .desc = "Print sedcli-kmip version.",
+        .long_desc = "Print sedcli-kmip version.",
         .options = NULL,
         .options_parse = NULL,
         .handle = handle_version,
@@ -178,16 +171,20 @@ struct sedcli_options {
 
 static struct sedcli_options *opts;
 
+#define DEV_INFO_LEN 256
 typedef struct dev_info {
-    char serial[256];
-    char model[256];
+    char serial[DEV_INFO_LEN];
+    char model[DEV_INFO_LEN];
 } dev_info;
 struct dev_info devs[MAX_SCAN_DEVS];
 
+#define READ_BUF_SIZE 4096
+#define COMMAND_BUF_SIZE 1024
+#define MAX_DEV_LEN 10
+
 int execl_param(int dev, char *param, char *output)
 {
-    char foo[4096 + 1];
-    memset(foo, 0, 4096);
+    char read_buf[READ_BUF_SIZE + 1] = {0};
 
     int link[2];
     if (pipe(link) == -1)
@@ -204,19 +201,19 @@ int execl_param(int dev, char *param, char *output)
 
         char *prefix = "//sys//block//nvme";
         int prefix_len = strlen(prefix);
-        char prefix_with_dev[256] = { 0 };
+        char prefix_with_dev[DEV_INFO_LEN] = {0};
         memcpy(prefix_with_dev, prefix, sizeof(char) * prefix_len);
-        char dev_str[10];
+        char dev_str[MAX_DEV_LEN];
         snprintf(dev_str, sizeof(dev_str), "%d", dev);
         memcpy(prefix_with_dev + prefix_len, dev_str, sizeof(char) * strlen(dev_str));
 
         char *postfix = "n1//device//";
         int postfix_len = strlen(postfix);
-        char postfix_with_param[256] = { 0 };
+        char postfix_with_param[DEV_INFO_LEN] = {0};
         memcpy(postfix_with_param, postfix, sizeof(char) * postfix_len);
         memcpy(postfix_with_param + postfix_len, param, sizeof(char) * strlen(param));
 
-        char cmd[1024] = { 0 };
+        char cmd[COMMAND_BUF_SIZE] = {0};
         memcpy(cmd, prefix_with_dev, sizeof(char) * strlen(prefix_with_dev));
         memcpy(cmd + strlen(prefix_with_dev), postfix_with_param, sizeof(char) * strlen(postfix_with_param));
 
@@ -226,10 +223,10 @@ int execl_param(int dev, char *param, char *output)
     } else {
         close(link[1]);
         int nbytes = 0;
-        while(0 != (nbytes = read(link[0], foo, sizeof(foo)))) {
-            foo[4096] = '\0';
-            memcpy(output, foo, sizeof(char) * strlen(foo));
-            memset(foo, 0, 4096);
+        while(0 != (nbytes = read(link[0], read_buf, sizeof(read_buf)))) {
+            read_buf[READ_BUF_SIZE] = '\0';
+            memcpy(output, read_buf, sizeof(char) * strlen(read_buf));
+            memset(read_buf, 0, sizeof(read_buf));
         }
         wait(NULL);
     }
@@ -250,7 +247,7 @@ static int handle_scan(void)
 
     for (uint8_t i = 0; i < MAX_SCAN_DEVS; i++)
     {
-        char dev_name[256] = { 0 };
+        char dev_name[DEV_INFO_LEN] = {0};
         snprintf(dev_name, sizeof(dev_name), "//dev//nvme%dn1", i);
 
         struct sed_device *dev = NULL;
@@ -262,9 +259,9 @@ static int handle_scan(void)
         execl_param(i, "model", devs[i].model);
 
         sedcli_printf(LOG_INFO, "nvme%dn1:\nserial: %smodel: %s", i, devs[i].serial, devs[i].model);
-        if (dev->discv.sed_lvl0_discv.feat_avail_flag.feat_opalv100)
+        if (dev->discovery.sed_lvl0_discovery.feat_avail_flag.feat_opalv100)
             sedcli_printf(LOG_INFO, "opal1 supported\n");
-        if (dev->discv.sed_lvl0_discv.feat_avail_flag.feat_opalv200)
+        if (dev->discovery.sed_lvl0_discovery.feat_avail_flag.feat_opalv200)
             sedcli_printf(LOG_INFO, "opal2 supported\n");
         sedcli_printf(LOG_INFO, "\n");
 
@@ -353,13 +350,13 @@ static int handle_connection_test(void)
 
     int status = read_stat_config(conf_stat_file);
     if (status) {
-        sedcli_printf(LOG_ERR, "Error while reading sedcli config file\n");
+        sedcli_printf(LOG_ERR, "Error while reading sedcli config file.\n");
         return KMIP_FAILURE;
     }
 
     status = read_dyn_config(conf_dyn_file);
     if (status) {
-        sedcli_printf(LOG_ERR, "Error while reading sedcli dynamic config file\n");
+        sedcli_printf(LOG_ERR, "Error while reading sedcli dynamic config file.\n");
         return KMIP_FAILURE;
     }
 
@@ -371,14 +368,14 @@ static int handle_connection_test(void)
         conf_stat_file->ca_cert_path);
 
     if (status == -1) {
-        sedcli_printf(LOG_ERR, "Can't initialize KMIP connection\n");
+        sedcli_printf(LOG_ERR, "Can't initialize KMIP connection.\n");
         status = KMIP_FAILURE;
         goto deinit;
     }
 
     status = sed_kmip_connect(&ctx);
     if (status) {
-        sedcli_printf(LOG_ERR, "Can't connect to KMIP\n");
+        sedcli_printf(LOG_ERR, "Can't connect to KMIP.\n");
         status = KMIP_FAILURE;
         goto deinit;
     } else
@@ -465,13 +462,13 @@ static int handle_provision(void)
         conf_stat_file->ca_cert_path);
 
     if (status == -1) {
-        sedcli_printf(LOG_ERR, "Can't initialize KMIP connection\n");
+        sedcli_printf(LOG_ERR, "Can't initialize KMIP connection.\n");
         goto deinit;
     }
 
     status = sed_kmip_connect(ctx);
     if (status) {
-        sedcli_printf(LOG_ERR, "Can't connect to KMIP\n");
+        sedcli_printf(LOG_ERR, "Can't connect to KMIP.\n");
         goto deinit;
     }
 
@@ -483,11 +480,11 @@ static int handle_provision(void)
 
             status = write_dyn_conf(conf_dyn_file->pek_id, pek_id_size);
             if (status) {
-                sedcli_printf(LOG_ERR, "Error while updating sedcli dynamic config file\n");
+                sedcli_printf(LOG_ERR, "Error while updating sedcli dynamic config file.\n");
                 goto deinit;
             }
         } else {
-            sedcli_printf(LOG_ERR, "Can't create PEK from KMIP\n");
+            sedcli_printf(LOG_ERR, "Can't create PEK from KMIP.\n");
             goto deinit;
         }
     }
@@ -495,7 +492,7 @@ static int handle_provision(void)
     status = sed_kmip_get_platform_key(ctx, conf_dyn_file->pek_id, conf_dyn_file->pek_id_size, (char **)&pek,
         &pek_size);
     if (status) {
-        sedcli_printf(LOG_ERR, "Can't get PEK from KMIP\n");
+        sedcli_printf(LOG_ERR, "Can't get PEK from KMIP.\n");
         goto deinit;
     }
 
@@ -503,7 +500,7 @@ static int handle_provision(void)
 
     meta = sedcli_metadata_alloc_buffer();
     if (!meta) {
-        sedcli_printf(LOG_ERR, "Failed to allocate memory\n");
+        sedcli_printf(LOG_ERR, "Failed to allocate memory.\n");
         status = -ENOMEM;
         goto deinit;
     }
@@ -521,13 +518,13 @@ static int handle_provision(void)
 
     status = get_random_bytes(iv, IV_SIZE);
     if (status) {
-        sedcli_printf(LOG_ERR, "Error while generating IV\n");
+        sedcli_printf(LOG_ERR, "Error while generating IV.\n");
         goto deinit;
     }
 
     status = get_random_bytes((uint8_t *)key[0].key, SED_KMIP_KEY_LEN);
     if (status) {
-        sedcli_printf(LOG_ERR, "Error while generating DEK\n");
+        sedcli_printf(LOG_ERR, "Error while generating DEK.\n");
         goto deinit;
     }
     key[0].len = SED_KMIP_KEY_LEN;
@@ -535,13 +532,13 @@ static int handle_provision(void)
     status = encrypt_dek((uint8_t *)key[0].key, key[0].len, (uint8_t *)meta, auth_len, enc_dek, SED_KMIP_KEY_LEN, pek,
         pek_size, iv, IV_SIZE, tag, TAG_SIZE);
     if (status < 0) {
-        sedcli_printf(LOG_ERR, "Error while encrypting DEK\n");
+        sedcli_printf(LOG_ERR, "Error while encrypting DEK.\n");
         goto deinit;
     }
 
     status = sed_init(&sed_dev, dev_path, false);
     if (status) {
-        sedcli_printf(LOG_ERR, "Error while initializing SED library\n");
+        sedcli_printf(LOG_ERR, "Error while initializing SED library.\n");
         goto deinit;
     }
     sedcli_printf(LOG_INFO, "SED library initialized.\n");
@@ -624,7 +621,7 @@ static int read_key_from_datastore(struct sed_device *sed_dev, struct sed_key *d
 {
     int status = read_stat_config(conf_stat_file);
     if (status) {
-        sedcli_printf(LOG_ERR, "Error while reading sedcli config file\n");
+        sedcli_printf(LOG_ERR, "Error while reading sedcli config file.\n");
         return -1;
     }
 
@@ -635,7 +632,7 @@ static int read_key_from_datastore(struct sed_device *sed_dev, struct sed_key *d
 
     struct sed_kmip_ctx *ctx = malloc(sizeof(*ctx));
     if (!ctx) {
-        sedcli_printf(LOG_ERR, "Failed to allocate memory\n");
+        sedcli_printf(LOG_ERR, "Failed to allocate memory.\n");
         ret = -ENOMEM;
         goto deinit;
     }
@@ -643,7 +640,7 @@ static int read_key_from_datastore(struct sed_device *sed_dev, struct sed_key *d
 
     meta = sedcli_metadata_alloc_buffer();
     if (!meta) {
-        sedcli_printf(LOG_ERR, "Failed to allocate memory\n");
+        sedcli_printf(LOG_ERR, "Failed to allocate memory.\n");
         ret = -ENOMEM;
         goto deinit;
     }
@@ -662,14 +659,14 @@ static int read_key_from_datastore(struct sed_device *sed_dev, struct sed_key *d
                    conf_stat_file->ca_cert_path);
 
     if (status == -1) {
-        sedcli_printf(LOG_ERR, "Can't initialize KMIP connection\n");
+        sedcli_printf(LOG_ERR, "Can't initialize KMIP connection.\n");
         ret = KMIP_FAILURE;
         goto deinit;
     }
 
     status = sed_kmip_connect(ctx);
     if (status) {
-        sedcli_printf(LOG_ERR, "Can't connect to KMIP\n");
+        sedcli_printf(LOG_ERR, "Can't connect to KMIP.\n");
         ret = KMIP_FAILURE;
         goto deinit;
     }
@@ -679,7 +676,7 @@ static int read_key_from_datastore(struct sed_device *sed_dev, struct sed_key *d
     uint32_t pek_id_size = sedcli_meta_get_pek_id_size(meta);
     status = sed_kmip_get_platform_key(ctx, (char *)pek_id, pek_id_size, (char **)&pek, &pek_size);
     if (status) {
-        sedcli_printf(LOG_ERR, "Can't get PEK from KMIP\n");
+        sedcli_printf(LOG_ERR, "Can't get PEK from KMIP.\n");
         ret = KMIP_FAILURE;
         goto deinit;
     }
@@ -694,10 +691,11 @@ static int read_key_from_datastore(struct sed_device *sed_dev, struct sed_key *d
     status = decrypt_dek(enc_dek, enc_dek_size, (uint8_t *)meta, auth_len, (uint8_t *)(dek_key->key), SED_KMIP_KEY_LEN,
         pek, pek_size, iv, iv_size, tag, tag_size);
     if (status != SED_KMIP_KEY_LEN) {
-        sedcli_printf(LOG_ERR, "Error while decrypting DEK key\n");
+        sedcli_printf(LOG_ERR, "Error while decrypting DEK key.\n");
         ret = KMIP_FAILURE;
         goto deinit;
     }
+
     dek_key->len = status;
 
 deinit:
@@ -899,7 +897,7 @@ static int handle_lock_unlock(void)
 {
     struct sed_key *dek = alloc_locked_buffer(sizeof(*dek));
     if (!dek) {
-        sedcli_printf(LOG_ERR, "Failed to allocate memory\n");
+        sedcli_printf(LOG_ERR, "Failed to allocate memory.\n");
         return -ENOMEM;
     }
 
@@ -912,14 +910,14 @@ static int handle_lock_unlock(void)
 
     int status = read_key_from_datastore(dev, dek);
     if (status) {
-        sedcli_printf(LOG_ERR, "Error while decrypting DEK key\n");
+        sedcli_printf(LOG_ERR, "Error while decrypting DEK key.\n");
         ret = KMIP_FAILURE;
         goto deinit;
     }
 
     ret = sed_lock_unlock(dev, dek, opal_uid[OPAL_ADMIN1_UID], 0, false, opts->access_type);
     if (ret)
-        sedcli_printf(LOG_ERR, "Error while unlocking drive\n");
+        sedcli_printf(LOG_ERR, "Error while unlocking drive.\n");
 
 deinit:
     if (dek)
@@ -947,7 +945,7 @@ int main(int argc, char *argv[])
 
     opts = alloc_locked_buffer(sizeof(*opts));
     if (!opts) {
-        sedcli_printf(LOG_ERR, "Failed to allocate memory\n");
+        sedcli_printf(LOG_ERR, "Failed to allocate memory.\n");
         return -ENOMEM;
     }
 

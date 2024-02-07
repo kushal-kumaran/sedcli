@@ -328,8 +328,7 @@ void opal_put_all_tokens(struct opal_token **tokens, size_t *len)
         return;
     }
 
-    if (tokens)
-    {
+    if (tokens) {
         for (size_t i = 0; i < *len; i++) {
             if (tokens[i] != NULL) {
                 opal_put_token(tokens[i]);
@@ -355,9 +354,8 @@ static struct opal_token *opal_get_next_token(uint8_t *buf, int len, int *pos)
     size_t status;
 
     token = alloc_token(&free_token_list);
-    if (token == NULL) {
+    if (token == NULL)
         return NULL;
-    }
 
     offset = *pos;
 
@@ -419,6 +417,7 @@ static struct opal_token *opal_get_next_token(uint8_t *buf, int len, int *pos)
 
 put_token:
     opal_put_token(token);
+
     return NULL;
 }
 

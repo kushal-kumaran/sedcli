@@ -54,7 +54,7 @@ static void echo_enable()
 int get_password(char *pwd, uint8_t *len, int max)
 {
     size_t dest = max + 2;
-    char temp[dest];
+    char temp[dest]; // note that this is VLA
     int ret, temp_len;
 
     echo_disable();
@@ -62,7 +62,7 @@ int get_password(char *pwd, uint8_t *len, int max)
     memset(temp, 0, dest);
 
     if (fgets((char *) temp, dest, stdin) == NULL) {
-        sedcli_printf(LOG_ERR, "Error getting password\n");
+        sedcli_printf(LOG_ERR, "Error getting password.\n");
         ret = -EINVAL;
         goto err;
     }
