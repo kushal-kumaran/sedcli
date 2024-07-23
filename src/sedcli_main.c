@@ -101,7 +101,7 @@ static int get_acl_handle(void);
 static int start_session_handle(void);
 static int end_session_handle(void);
 
-static int read_password(struct sed_key *);
+static int read_password(struct sed_key *, bool);
 
 #define D_DEVICE_PARAM_REQUIRED \
     {'d', "device", "Device node e.g. /dev/nvme0n1", 1, "DEVICE", CLI_OPTION_REQUIRED}
@@ -201,6 +201,8 @@ static int read_password(struct sed_key *);
     {'h', "hsn", "HSN parameter for end-session command.", 1, "NUM", CLI_OPTION_REQUIRED}
 #define T_TSN_PARAM_PARAM_REQUIRED \
     {'t', "tsn", "TSN parameter for end-session command.", 1, "NUM", CLI_OPTION_REQUIRED}
+#define X_PWD_IS_HEXENCODED_OPTIONAL \
+    {'x', "hex", "Treat read passwords as hex-encoded strings.", 0, "FLAG", CLI_OPTION_OPTIONAL}
 
 static cli_option host_prop_opts[] = {
     D_DEVICE_PARAM_REQUIRED,
@@ -222,6 +224,7 @@ static cli_option parse_tper_state_opts[] = {
 
 static cli_option ownership_opts[] = {
     D_DEVICE_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -233,6 +236,7 @@ static cli_option activate_sp_opts[] = {
     L_LOCKING_RANGE_UIDS_PARAM_OPTIONAL,
     R_RANGE_START_LENGTH_POLICY_OPTIONAL,
     T_DATASTORE_TABLE_SIZES_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -241,6 +245,7 @@ static cli_option revert_opts[] = {
     P_SP_PARAM_OPTIONAL,
     A_AUTHORITY_PARAM_REQUIRED,
     T_TARGET_SP_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -248,6 +253,7 @@ static cli_option revert_lsp_opts[] = {
     D_DEVICE_PARAM_REQUIRED,
     A_AUTHORITY_PARAM_REQUIRED,
     N_KEEP_GLOBAL_RANGE_KEY_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -257,6 +263,7 @@ static cli_option lock_unlock_opts[] = {
     L_LOCKING_RANGE_PARAM_OPTIONAL,
     S_SUM_PARAM_OPTIONAL,
     T_ACCESS_TYPE_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -264,6 +271,7 @@ static cli_option setup_global_range_opts[] = {
     D_DEVICE_PARAM_REQUIRED,
     R_RLE_PARAM_OPTIONAL,
     W_WLE_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -272,6 +280,7 @@ static cli_option set_password_opts[] = {
     P_SP_PARAM_REQUIRED,
     A_AUTHORITY_PARAM_REQUIRED,
     U_USER_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -279,6 +288,7 @@ static cli_option mbr_control_opts[] = {
     D_DEVICE_PARAM_REQUIRED,
     E_MBR_ENABLE_PARAM_OPTIONAL,
     M_MBR_DONE_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -286,6 +296,7 @@ static cli_option write_mbr_opts[] = {
     D_DEVICE_PARAM_REQUIRED,
     F_FILE_PARAM_REQUIRED,
     O_OFFSET_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -300,6 +311,7 @@ static cli_option add_user_lr_opts[] = {
     A_AUTHORITY_PARAM_REQUIRED,
     T_ACCESS_TYPE_PARAM_REQUIRED,
     L_LOCKING_RANGE_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -312,6 +324,7 @@ static cli_option setup_lr_opts[] = {
     W_WLE_PARAM_OPTIONAL,
     B_RANGE_START_PARAM_REQUIRED,
     Z_RANGE_LENGTH_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -322,6 +335,7 @@ static cli_option genkey_opts[] = {
     I_UID_PARAM_REQUIRED,
     E_PUBLIC_EXPONENT_PARAM_OPTIONAL,
     L_PIN_LENGTH_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -330,6 +344,7 @@ static cli_option erase_opts[] = {
     P_SP_PARAM_REQUIRED,
     A_AUTHORITY_PARAM_REQUIRED,
     L_LOCKING_RANGE_UID_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -338,6 +353,7 @@ static cli_option enable_user_opts[] = {
     P_SP_PARAM_REQUIRED,
     A_AUTHORITY_PARAM_REQUIRED,
     U_USER_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -348,6 +364,7 @@ static cli_option assign_opts[] = {
     N_NAMESPACE_PARAM_REQUIRED,
     B_RANGE_START_PARAM_OPTIONAL,
     Z_RANGE_LENGTH_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -357,6 +374,7 @@ static cli_option deassign_opts[] = {
     A_AUTHORITY_PARAM_REQUIRED,
     I_UID_PARAM_REQUIRED,
     K_KEEP_NS_GLOBAL_RANGE_KEY_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -367,6 +385,7 @@ static cli_option table_next_opts[] = {
     I_UID_PARAM_REQUIRED,
     W_WHERE_PARAM_OPTIONAL,
     C_COUNT_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -376,6 +395,7 @@ static cli_option get_acl_opts[] = {
     A_AUTHORITY_PARAM_REQUIRED,
     I_INVOKING_UID_PARAM_REQUIRED,
     M_METHOD_UID_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -388,6 +408,7 @@ static cli_option reactivate_sp_opts[] = {
     R_RANGE_START_LENGTH_POLICY_OPTIONAL,
     T_DATASTORE_TABLE_SIZES_OPTIONAL,
     I_ADMIN1_PIN_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -398,6 +419,7 @@ static cli_option get_object_opts[] = {
     I_UID_PARAM_REQUIRED,
     S_START_PARAM_REQUIRED,
     E_END_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -410,6 +432,7 @@ static cli_option set_object_opts[] = {
     T_TYPE_PARAM_OPTIONAL,
     V_VALUE_PARAM_OPTIONAL,
     B_BUFF_PARAM_OPTIONAL,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -432,6 +455,7 @@ static cli_option get_byte_table_opts[] = {
     I_UID_PARAM_REQUIRED,
     S_START_PARAM_REQUIRED,
     E_END_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -443,6 +467,7 @@ static cli_option set_byte_table_opts[] = {
     S_START_PARAM_REQUIRED,
     E_END_PARAM_REQUIRED,
     F_FILE_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -450,6 +475,7 @@ static cli_option start_session_opts[] = {
     D_DEVICE_PARAM_REQUIRED,
     P_SP_PARAM_REQUIRED,
     A_AUTHORITY_PARAM_REQUIRED,
+    X_PWD_IS_HEXENCODED_OPTIONAL,
     {0}
 };
 
@@ -686,6 +712,7 @@ static cli_command sedcli_commands[] = {
 struct sedcli_options {
     char dev_path[PATH_MAX];
     char file_path[PATH_MAX];
+    bool pwd_is_hexencoded;
     struct sed_key pwd;
     struct sed_key repeated_pwd;
     enum SED_ACCESS_TYPE access_type;
@@ -869,6 +896,8 @@ int ownership_opts_parse(char *opt, char **arg)
 {
     if (!strncmp(opt, "device", MAX_INPUT)) {
         strncpy(opts->dev_path, arg[0], PATH_MAX - 1);
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -912,6 +941,8 @@ int activate_sp_opts_parse(char *opt, char **arg)
     } else if (!strncmp(opt, "datastore-table-sizes", MAX_INPUT)) {
         strncpy(opts->dsts_str, arg[0], sizeof(opts->dsts_str) - 1);
         opts->dsts_str[sizeof(opts->dsts_str) - 1] = '\0';
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -938,6 +969,8 @@ int revert_opts_parse(char *opt, char **arg)
         if (sp_param_handle(arg, opts->target_sp_uid, &opts->target_sp) != SED_SUCCESS)
             goto err_parsing;
         target_sp = true;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -955,6 +988,8 @@ int revert_lsp_opts_parse(char *opt, char **arg)
         authority_param_handle(arg);
     else if (!strncmp(opt, "keep-global-range-key", MAX_INPUT))
         opts->keep_global_range_key = 1;
+    else if (!strncmp(opt, "hex", MAX_INPUT))
+        opts->pwd_is_hexencoded = true;
 
     return 0;
 }
@@ -981,6 +1016,8 @@ int lock_unlock_opts_parse(char *opt, char **arg)
         }
     } else if (!strncmp(opt, "sum", MAX_INPUT))
         opts->sum = true;
+    else if (!strncmp(opt, "hex", MAX_INPUT))
+        opts->pwd_is_hexencoded = true;
 
     return 0;
 }
@@ -1007,6 +1044,8 @@ int setup_global_range_opts_parse(char *opt, char **arg)
             opts->wle = SED_FLAG_DISABLED;
         else
             goto err_parsing;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1027,6 +1066,8 @@ int set_password_opts_parse(char *opt, char **arg)
         authority_param_handle(arg);
     } else if (!strncmp(opt, "user", MAX_INPUT)) {
         user_param_handle(arg);
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1068,6 +1109,8 @@ int mbr_control_opts_parse(char *opt, char **arg)
         opts->done = get_mbr_flag(arg[0]);
         if (opts->done < 0)
             return opts->done;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1093,6 +1136,8 @@ int write_mbr_opts_parse(char *opt, char **arg)
             return -EINVAL;
         }
         offset_flag = true;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1137,6 +1182,8 @@ int add_user_lr_opts_parse(char *opt, char **arg)
             sedcli_printf(LOG_ERR, "Failed to parse the Locking Range provided.\n");
             return -EINVAL;
         }
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1182,6 +1229,8 @@ int setup_lr_opts_parse(char *opt, char **arg)
         opts->range_length = strtoul(arg[0], &error, 10);
         if (error == arg[0])
             goto err_parsing;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1213,6 +1262,8 @@ int genkey_opts_parse(char *opt, char **arg)
         opts->pin_length = strtoul(arg[0], &error, 10);
         if (error == arg[0])
             goto err_parsing;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1234,6 +1285,8 @@ int erase_opts_parse(char *opt, char **arg)
     } else if (!strncmp(opt, "locking-range", MAX_INPUT)) {
         if (parse_uid(arg, opts->uid) == false)
             goto err_parsing;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1254,6 +1307,8 @@ int enable_user_opts_parse(char *opt, char **arg)
             goto err_parsing;
     } else if (!strncmp(opt, "user", MAX_INPUT)) {
         user_param_handle(arg);
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1286,6 +1341,8 @@ int assign_opts_parse(char *opt, char **arg)
         opts->range_length = strtoul(arg[0], &error, 10);
         if (error == arg[0])
             goto err_parsing;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1309,6 +1366,8 @@ int deassign_opts_parse(char *opt, char **arg)
             goto err_parsing;
     } else if (!strncmp(opt, "keep-ns-global-range-key", MAX_INPUT)) {
         opts->keep_ns_global_range_key = true;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1335,6 +1394,8 @@ int table_next_opts_parse(char *opt, char **arg)
             goto err_parsing;
     } else if (!strncmp(opt, "count", MAX_INPUT)) {
         opts->count = strtol(arg[0], NULL, 10);
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1385,6 +1446,8 @@ int reactivate_sp_opts_parse(char *opt, char **arg)
     } else if (!strncmp(opt, "datastore-table-sizes", MAX_INPUT)) {
         strncpy(opts->dsts_str, arg[0], sizeof(opts->dsts_str) - 1);
         opts->dsts_str[sizeof(opts->dsts_str) - 1] = '\0';
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1422,6 +1485,8 @@ int get_object_opts_parse(char *opt, char **arg)
     } else if (!strncmp(opt, "end", MAX_INPUT)) {
         if (parse_int_or_hex(arg, &opts->end))
             goto err_parsing;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1447,6 +1512,8 @@ int get_acl_opts_parse(char *opt, char **arg)
     else if (!strncmp(opt, "method-uid", MAX_INPUT)) {
         if (parse_uid(arg, opts->method) == false)
             goto err_parsing;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
     return 0;
 
@@ -1485,6 +1552,8 @@ int set_object_opts_parse(char *opt, char **arg)
             goto err_parsing;
     } else if (!strncmp(opt, "buffer", MAX_INPUT)) {
         opts->buff = true;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1530,6 +1599,8 @@ int start_session_opts_parse(char *opt, char **arg)
             goto err_parsing;
     } else if (!strncmp(opt, "authority", MAX_INPUT)) {
         authority_param_handle(arg);
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1583,6 +1654,8 @@ int get_byte_table_opts_parse(char *opt, char **arg)
     } else if (!strncmp(opt, "end", MAX_INPUT)) {
         if (parse_int_or_hex(arg, &opts->end))
             goto err_parsing;
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -1617,6 +1690,8 @@ int set_byte_table_opts_parse(char *opt, char **arg)
             goto err_parsing;
     } else if (!strncmp(opt, "file", MAX_INPUT)) {
         strncpy(opts->file_path, arg[0], PATH_MAX - 1);
+    } else if (!strncmp(opt, "hex", MAX_INPUT)) {
+        opts->pwd_is_hexencoded = true;
     }
 
     return 0;
@@ -2116,16 +2191,17 @@ static int ownership_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "New SID password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
     sedcli_printf(LOG_INFO, "Repeat new SID password:");
-    ret = read_password(&opts->repeated_pwd);
+    ret = read_password(&opts->repeated_pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
-    if (0 != strncmp(opts->pwd.key, opts->repeated_pwd.key, SED_MAX_KEY_LEN)) {
+    if (opts->pwd.len != opts->repeated_pwd.len ||
+	  0 != memcmp(opts->pwd.key, opts->repeated_pwd.key, opts->pwd.len)) {
         sedcli_printf(LOG_ERR, "Error: passwords don't match\n");
         ret = -EINVAL;
         goto deinit;
@@ -2147,7 +2223,7 @@ static int activate_sp_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter SID password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2180,7 +2256,7 @@ static int start_session_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2231,7 +2307,7 @@ static int revert_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2263,7 +2339,7 @@ static int revert_lsp_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2287,7 +2363,7 @@ static int lock_unlock_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2311,7 +2387,7 @@ static int setup_global_range_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2333,7 +2409,7 @@ static int setup_lr_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2361,7 +2437,7 @@ static int genkey_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2389,7 +2465,7 @@ static int erase_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2417,7 +2493,7 @@ static int enable_user_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2569,7 +2645,7 @@ static int get_object_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2730,7 +2806,7 @@ static int set_object_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2860,7 +2936,7 @@ static int byte_table_handle(bool is_set)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2942,7 +3018,7 @@ static int reactivate_sp_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -2975,7 +3051,7 @@ static int assign_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -3018,7 +3094,7 @@ static int deassign_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -3046,7 +3122,7 @@ static int table_next_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -3098,7 +3174,7 @@ static int get_acl_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -3145,23 +3221,24 @@ static int set_password_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter authority password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
     sedcli_printf(LOG_INFO, "New user password:");
     struct sed_key new_key = { 0 };
-    ret = read_password(&new_key);
+    ret = read_password(&new_key, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
     sedcli_printf(LOG_INFO, "Repeat new user password:");
     struct sed_key new_key_repeated = { 0 };
-    ret = read_password(&new_key_repeated);
+    ret = read_password(&new_key_repeated, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
-    if (0 != strncmp((char *)new_key.key, (char *)new_key_repeated.key, 255)) {
+    if (new_key.len != new_key_repeated.len ||
+	  0 != memcmp(new_key.key, new_key_repeated.key, new_key.len)) {
         sedcli_printf(LOG_ERR, "Error: passwords don't match\n");
         ret = -EINVAL;
         goto deinit;
@@ -3230,7 +3307,7 @@ static int mbr_control_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -3261,7 +3338,7 @@ static int write_mbr_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -3325,7 +3402,7 @@ static int add_user_lr_handle(void)
         return ret;
 
     sedcli_printf(LOG_INFO, "Enter password:");
-    ret = read_password(&opts->pwd);
+    ret = read_password(&opts->pwd, opts->pwd_is_hexencoded);
     if (ret)
         goto deinit;
 
@@ -3358,11 +3435,43 @@ static int help_handle(void)
     return 0;
 }
 
-static int read_password(struct sed_key *pwd)
+static int hex_decode(char *buf, uint16_t buf_sz, struct sed_key *pwd)
+{
+    int i = 0;
+
+    for (i = 0; i < buf_sz; i += 2) {
+        int b;
+        if (sscanf(buf+i, "%2x", &b) != 1) {
+            return -EINVAL;
+        }
+        pwd->key[i/2] = b;
+    }
+    pwd->len = buf_sz / 2;
+
+    return 0;
+}
+
+static int read_password(struct sed_key *pwd, bool hex_encoded)
 {
     int ret = 0;
+    uint16_t in_size;
 
-    ret = get_password(pwd->key, &pwd->len, SED_MAX_KEY_LEN);
+    if (hex_encoded) {
+        char buf[SED_MAX_KEY_LEN*2+1];
+
+        ret = get_password(buf, &in_size, SED_MAX_KEY_LEN*2);
+        if (ret) {
+            return ret;
+        }
+
+        ret = hex_decode(buf, in_size, pwd);
+    } else {
+        ret = get_password(pwd->key, &in_size, SED_MAX_KEY_LEN);
+        if (ret) {
+            return ret;
+        }
+        pwd->len = in_size;
+    }
 
     return ret;
 }

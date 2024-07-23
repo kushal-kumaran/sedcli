@@ -9,7 +9,7 @@
 
 int get_access_type(const char *access_type_str, enum SED_ACCESS_TYPE *access_type);
 
-int get_password(char *pwd, uint8_t *len, uint8_t max);
+int get_password(char *pwd, uint16_t *len, uint16_t max);
 
 void *alloc_locked_buffer(size_t size);
 

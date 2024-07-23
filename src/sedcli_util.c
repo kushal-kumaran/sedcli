@@ -51,7 +51,7 @@ static void echo_enable()
     tcsetattr(1, 0, &term);
 }
 
-int get_password(char *pwd, uint8_t *len, int max)
+int get_password(char *pwd, uint16_t *len, uint16_t max)
 {
     size_t dest = max + 2;
     char temp[dest]; // note that this is VLA
